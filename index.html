@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+    <title>💍 Casamento - Danielly & Felipe</title>
+
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Great+Vibes&family=Playfair+Display:ital,wght@0,400;0,600;1,400;1,500&family=Quicksand:wght@300;400;500;600&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Allura&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Dancing+Script&family=Pacifico&display=swap" rel="stylesheet">
+
+    <!-- canvas-confetti -->
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1"></script>
+
+    <!-- CSS externo -->
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+    <!-- ====== OVERLAY COM O LIVRO 3D ====== -->
+    <div id="overlay">
+
+        <div class="scene" id="scene">
+            <div class="book">
+
+                <!-- ====== PÁGINAS INTERNAS ====== -->
+                <div class="pages">
+                    <div class="page-form" id="pageForm">
+                        <div class="overlay-card">
+                            <p class="subtitle-overlay">Bem-vindo ao álbum de</p>
+                            <div class="nome-casal">Danielly &amp; Felipe</div>
+                            <p>Digite seu nome para registrar fotos no álbum</p>
+                            <input type="text" id="inputNome" placeholder="Seu nome (ex: Maria Clara)" maxlength="30" autocomplete="off" />
+                            <button class="btn-confirmar" id="btnConfirmarNome" disabled>Confirmar Nome</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- ====== CAPA ====== -->
+                <div class="cover">
+                    <div class="cover-title">Danielly &amp; Felipe</div>
+                    <div class="cover-decoration"></div>
+                </div>
+
+                <!-- Sombra -->
+                <div class="shadow"></div>
+
+            </div>
+        </div>
+
+    </div>
+
+    <!-- ====== CONTEÚDO PRINCIPAL ====== -->
+    <div id="main-content">
+        <div class="container">
+            <p class="subtitle-main">O álbum compartilhado de</p>
+            <div class="nome-casal-main">Danielly &amp; Felipe</div>
+
+            <div class="divider">
+                <span class="divider-line"></span>
+                <span>✨</span>
+                <span class="divider-line"></span>
+            </div>
+
+            <div class="instructions-box">
+                <p class="instructions-text">📸 <strong>Você é o(a) fotógrafo(a) oficial!</strong></p>
+                <p class="instructions-text">Capture os melhores momentos com a câmera </p>
+                <p class="instructions-text">Tire uma foto sua ou da galera e envie com muito amor! 💖</p>
+                <p class="instructions-text">Você também pode fazer upload de fotos do seu celular 😉</p>
+            </div>
+
+            <div class="camera-wrapper" id="cameraWrapper">
+                <video id="video" autoplay playsinline muted style="display: none;"></video>
+                <div class="placeholder-camera" id="placeholderCamera">
+                    📸 Toque aqui para abrir a câmera
+                </div>
+
+                <button class="btn-capturar-camera" id="btnCapturar" style="display: none;">
+                    <span class="btn-text">Abrir Câmera</span>
+                </button>
+
+                <button class="btn-flip" id="btnTrocarCamera" style="display: none;">
+                    <span class="btn-icon">
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="#ffffff" width="28" height="28">
+                            <g id="Layer_7" data-name="Layer 7">
+                                <path d="M22.15,39.23a.53.53,0,0,0-.71,0L17,43.72V32A15.06,15.06,0,0,1,32,17a.5.5,0,0,0,.5-.5V12.77a.5.5,0,0,0-.5-.5A19.75,19.75,0,0,0,12.27,32V43.72L7.78,39.23a.5.5,0,0,0-.35-.14h0a.52.52,0,0,0-.35.14L4.46,41.85a.5.5,0,0,0,0,.71l9.79,9.79a.51.51,0,0,0,.36.15.5.5,0,0,0,.35-.15l9.8-9.79a.51.51,0,0,0,0-.71Z"></path>
+                                <path d="M59.53,21.44l-9.79-9.79a.5.5,0,0,0-.71,0l-9.8,9.79a.51.51,0,0,0,0,.71l2.62,2.62a.53.53,0,0,0,.71,0L47,20.28V32A15.06,15.06,0,0,1,32,47a.5.5,0,0,0-.5.5v3.69a.5.5,0,0,0,.5.5A19.75,19.75,0,0,0,51.73,32V20.28l4.49,4.49a.5.5,0,0,0,.35.14h0a.52.52,0,0,0,.35-.14l2.61-2.62A.5.5,0,0,0,59.53,21.44Z"></path>
+                            </g>
+                        </svg>
+                    </span>
+                </button>
+
+                <div class="exposure-control" id="exposureControl">
+                    <input type="range" id="exposureSlider" min="0.3" max="2.0" step="0.05" value="1.15" />
+                    <span class="exposure-value" id="exposureValue">1.15</span>
+                </div>
+            </div>
+
+            <canvas id="canvas"></canvas>
+
+            <div id="status">💖 Digite seu nome para começar</div>
+
+            <!-- ====== GALERIA ====== -->
+            <div class="galeria-section">
+                <div class="upload-area">
+                    <button class="btn-upload" id="btnUpload">
+                        <span class="icon">📤</span>
+                        Adicionar foto do seu celular
+                    </button>
+                    <input type="file" id="fileInput" accept="image/*" multiple />
+                </div>
+                <div class="galeria-titulo">
+                    Fotos do álbum <span id="contadorFotosAlbum">(0)</span>
+                </div>
+
+                <div class="galeria-grid" id="galeriaGrid">
+                    <div class="galeria-vazio">Carregando fotos...</div>
+                </div>
+            </div>
+
+            <div class="footer-note">
+                Com carinho, os noivos 🌹
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== MODAL PARA EXIBIR FOTO DA GALERIA ====== -->
+    <div id="modalImagem">
+        <span class="fechar-modal" id="fecharModal">✕</span>
+        <img id="modalImg" src="" alt="Foto ampliada" />
+    </div>
+
+    <!-- ====== MODAL DE PRÉVIA ====== -->
+    <div id="modalPreview">
+        <span class="fechar-preview" id="fecharPreview">✕</span>
+        <div class="preview-wrapper">
+            <button class="preview-nav prev" id="prevFoto">‹</button>
+            <img id="previewImg" src="" alt="Prévia da sua foto" class="preview-content" />
+            <button class="preview-nav next" id="nextFoto">›</button>
+            <div class="preview-counter" id="contadorFotos">1/1</div>
+        </div>
+
+        <div class="preview-filters" id="filtrosContainer">
+            <button class="btn-filtro ativo" data-filtro="none"><span class="emoji-filtro">✨</span> Normal</button>
+            <button class="btn-filtro" data-filtro="grayscale"><span class="emoji-filtro">⚫</span> P&B</button>
+            <button class="btn-filtro" data-filtro="sepia"><span class="emoji-filtro">🟫</span> Sépia</button>
+            <button class="btn-filtro" data-filtro="vintage"><span class="emoji-filtro">🎞️</span> Vintage</button>
+            <button class="btn-filtro" data-filtro="bright"><span class="emoji-filtro">☀️</span> Claro</button>
+        </div>
+
+        <!-- BARRA DE PROGRESSO COM SPINNER -->
+        <div id="progressContainer">
+            <div class="progress-row">
+                <span class="progress-label" id="progressLabel">
+                    <span class="spinner hidden" id="spinnerLoading"></span>
+                    Enviando 0/0
+                </span>
+                <progress id="progressBar" value="0" max="100"></progress>
+                <span class="progress-percent" id="progressPercent">0%</span>
+            </div>
+        </div>
+
+        <div class="preview-actions">
+            <button class="btn btn-secondary" id="btnFecharPreview">❌ Cancelar</button>
+            <button class="btn btn-primary" id="btnEnviarPreview">💌 Enviar com Amor</button>
+        </div>
+    </div>
+
+    <!-- JavaScript externo -->
+    <script src="script.js" defer></script>
+</body>
+</html>
