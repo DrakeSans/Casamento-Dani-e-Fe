@@ -52,6 +52,11 @@ const btnUpload = document.getElementById('btnUpload');
 const fileInput = document.getElementById('fileInput');
 const contadorAlbum = document.getElementById('contadorFotosAlbum');
 
+const coverElement = document.querySelector('.cover');
+const pagesElement = document.querySelector('.pages');
+const inputNomeEl = document.getElementById('inputNome');
+const btnConfirmarEl = document.getElementById('btnConfirmarNome');
+
 const filtrosContainer = document.getElementById('filtrosContainer');
 let filtroAtual = 'none';
 const filtrosMap = {
@@ -166,12 +171,34 @@ async function carregarGaleria(forcar = false) {
         }
     } catch (error) {
         console.error('❌ Erro ao carregar galeria:', error);
-        galeriaGrid.innerHTML = '<div class="galeria-vazio">❌ Erro ao carregar fotos. Tente recarregar.</div>';
+        galeriaGrid.innerHTML = '<div class="galeria-vazio">❌ Erro ao carregar fotos. Aguarde...</div>';
         contadorAlbum.textContent = '(0)';
     } finally {
         carregandoGaleria = false;
     }
 }
+
+function liberarFormulario() {
+    // Habilita os campos
+    inputNomeEl.disabled = false;
+    // O botão será habilitado pelo próprio evento 'input', mas podemos remover o atributo
+    btnConfirmarEl.disabled = false;
+    // Libera os cliques
+    pagesElement.classList.add('interactive');
+
+    // Remove o listener para não executar mais de uma vez
+    coverElement.removeEventListener('animationend', liberarFormulario);
+}
+
+// Escuta o fim da animação da capa
+coverElement.addEventListener('animationend', liberarFormulario);
+
+// Fallback por segurança (caso o evento não dispare)
+setTimeout(() => {
+    if (!pagesElement.classList.contains('interactive')) {
+        liberarFormulario();
+    }
+}, 5000);
 
 function setsIguais(setA, setB) {
     if (setA.size !== setB.size) return false;

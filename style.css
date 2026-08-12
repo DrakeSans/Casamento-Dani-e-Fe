@@ -1019,6 +1019,16 @@ input#fileInput {
     letter-spacing: 2px;
 }
 
+/* Desabilita interação na página do formulário enquanto o livro abre */
+.pages {
+    pointer-events: none;
+}
+
+/* Quando a animação terminar, libera os cliques e o foco */
+.pages.interactive {
+    pointer-events: auto;
+}
+
 @media (max-width: 450px) {
     .container { padding: 25px 16px 20px; }
     .nome-casal-main { font-size: 1.8rem; }
