@@ -1019,6 +1019,15 @@ input#fileInput {
     letter-spacing: 2px;
 }
 
+.footer-powered {
+    text-align: center;
+    font-size: 0.9rem;
+    color: #aaa;
+    margin-top: 1rem;
+    font-family: 'Quicksand', sans-serif;
+    letter-spacing: 0.5px;
+}
+
 /* Desabilita interação na página do formulário enquanto o livro abre */
 .pages {
     pointer-events: none;
