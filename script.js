@@ -909,8 +909,8 @@ async function iniciarCamera() {
         const stream = await navigator.mediaDevices.getUserMedia({
             video: {
                 facingMode: "environment",
-                width: { ideal: 1920 },
-                height: { ideal: 1080 }
+                width: { ideal: 4000 },
+                height: { ideal: 3000 }
             }
         });
 
@@ -959,8 +959,8 @@ async function trocarCamera() {
         const novoStream = await navigator.mediaDevices.getUserMedia({
             video: {
                 facingMode: facingMode,
-                width: { ideal: 1920 },
-                height: { ideal: 1080 }
+                width: { ideal: 4000 },
+                height: { ideal: 3000 }
             }
         });
 
