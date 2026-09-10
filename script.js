@@ -1,5 +1,22 @@
 // ====== URL DO APPS SCRIPT ======
-const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxDmp8Q1b5R4hjvf20oVY6MhKo9Vdx37ZHVJ_PNru0QQkF17w6M55Zp3MsvTVKglUbf/exec";
+const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzEV93O9WDLkkjv2q_K7BrzZ3TMnfLvAcYFo6S1YTRvXXP_OF3kLcnk9bHL6jTQPn9M/exec";
+
+// ====== FIREBASE CONFIG ======
+const firebaseConfig = {
+  apiKey: "AIzaSyBMfrhe57eSgCCfZriUoETbqVISsWgk9c0",
+  authDomain: "album-casamento-dani-fe.firebaseapp.com",
+  projectId: "album-casamento-dani-fe",
+  storageBucket: "album-casamento-dani-fe.appspot.com",
+  messagingSenderId: "182190323408",
+  appId: "1:182190323408:web:6a83b55a075a824e2950d5"
+};
+
+// Inicializa Firebase
+firebase.initializeApp(firebaseConfig);
+const db = firebase.firestore();
+
+// Guarda o listener para poder cancelar depois
+let listenerFirestore = null;
 
 // ====== FUNÇÃO CAPITALIZAR ======
 function capitalizarNome(nome) {
@@ -52,6 +69,15 @@ const btnUpload = document.getElementById('btnUpload');
 const fileInput = document.getElementById('fileInput');
 const contadorAlbum = document.getElementById('contadorFotosAlbum');
 
+const coverElement = document.querySelector('.cover');
+const btnSair = document.getElementById('btnSair');
+const modalSair = document.getElementById('modalSair');
+const btnCancelarSair = document.getElementById('btnCancelarSair');
+const btnConfirmarSair = document.getElementById('btnConfirmarSair');
+const pagesElement = document.querySelector('.pages');
+const inputNomeEl = document.getElementById('inputNome');
+const btnConfirmarEl = document.getElementById('btnConfirmarNome');
+
 const filtrosContainer = document.getElementById('filtrosContainer');
 let filtroAtual = 'none';
 const filtrosMap = {
@@ -75,6 +101,11 @@ let ultimosIds = new Set();
 let primeiraCarga = true;
 let carregandoGaleria = false;
 let nomeConfirmado = false;
+let ultimoCount = -1;
+
+// ---- NOVAS VARIÁVEIS PARA NAVEGAÇÃO NA GALERIA ----
+let fotosGaleria = [];          // Array com { url, fileId, nome }
+let indiceGaleriaAtual = 0;
 
 // ====== FUNÇÕES AUXILIARES ======
 function formatarDataHora(data) {
@@ -104,74 +135,98 @@ function setupExposureControl() {
     };
 }
 
-// ====== GALERIA ======
-async function carregarGaleria(forcar = false) {
-    if (carregandoGaleria) return;
-    carregandoGaleria = true;
-    try {
-        const response = await fetch(SCRIPT_URL, { method: 'GET' });
-        const data = await response.json();
-
-        if (data.status === "sucesso" && data.images && data.images.length > 0) {
-            const novosIds = new Set();
-            data.images.forEach(img => {
-                const match = img.url.match(/[?&]id=([^&]+)/);
-                if (match) novosIds.add(match[1]);
-            });
-
-            if (!forcar && primeiraCarga === false && setsIguais(ultimosIds, novosIds)) {
-                return;
-            }
-
-            ultimosIds = novosIds;
-            primeiraCarga = false;
-
-            galeriaGrid.innerHTML = '';
-            data.images.forEach((img, index) => {
-                const fileIdMatch = img.url.match(/[?&]id=([^&]+)/);
-                const fileId = fileIdMatch ? fileIdMatch[1] : null;
-                if (!fileId) return;
-
-                const div = document.createElement('div');
-                div.className = 'galeria-item';
-
-                const imgEl = document.createElement('img');
-                imgEl.src = `https://lh3.googleusercontent.com/d/${fileId}=s400?authuser=0&t=${new Date().getTime()}`;
-                imgEl.alt = img.name || `Foto ${index + 1}`;
-                imgEl.loading = 'lazy';
-
-                div.addEventListener('click', function() {
-                    const urlModal = `https://lh3.googleusercontent.com/d/${fileId}=w1200?authuser=0&t=${new Date().getTime()}`;
-                    modalImg.onerror = function() {
-                        this.onerror = null;
-                        this.src = `https://drive.usercontent.google.com/download?id=${fileId}&export=view&authuser=0&t=${new Date().getTime()}`;
-                    };
-                    modalImg.src = urlModal;
-                    modalImagem.classList.add('active');
-                });
-
-                div.appendChild(imgEl);
-                galeriaGrid.appendChild(div);
-            });
-
-            const totalFotos = data.images.length;
-            contadorAlbum.textContent = `(${totalFotos})`;
-
-        } else {
-            if (galeriaGrid.innerHTML !== '<div class="galeria-vazio">📭 Nenhuma foto enviada ainda. Seja o primeiro(a)!</div>') {
-                galeriaGrid.innerHTML = '<div class="galeria-vazio">📭 Nenhuma foto enviada ainda. Seja o primeiro(a)!</div>';
-            }
-            ultimosIds = new Set();
-            contadorAlbum.textContent = '(0)';
-        }
-    } catch (error) {
-        console.error('❌ Erro ao carregar galeria:', error);
-        galeriaGrid.innerHTML = '<div class="galeria-vazio">❌ Erro ao carregar fotos. Tente recarregar.</div>';
-        contadorAlbum.textContent = '(0)';
-    } finally {
-        carregandoGaleria = false;
-    }
+// ====== NAVEGAÇÃO NO MODAL DA GALERIA ======
+function abrirModalGaleria(index) {
+    if (fotosGaleria.length === 0) return;
+    indiceGaleriaAtual = index;
+    atualizarModalGaleria();
+    modalImagem.classList.add('active');
 }
+
+function atualizarModalGaleria() {
+    const foto = fotosGaleria[indiceGaleriaAtual];
+    if (!foto) return;
+    const fileId = foto.fileId;
+    const urlModal = `https://lh3.googleusercontent.com/d/${fileId}=w1200?authuser=0&t=${new Date().getTime()}`;
+    modalImg.onerror = function() {
+        this.onerror = null;
+        this.src = `https://drive.usercontent.google.com/download?id=${fileId}&export=view&authuser=0&t=${new Date().getTime()}`;
+    };
+    modalImg.src = urlModal;
+    document.getElementById('contadorGaleria').textContent = `${indiceGaleriaAtual+1}/${fotosGaleria.length}`;
+}
+
+// Eventos dos botões de navegação da galeria
+document.getElementById('prevGaleria').addEventListener('click', function(e) {
+    e.stopPropagation();
+    if (fotosGaleria.length === 0) return;
+    indiceGaleriaAtual = (indiceGaleriaAtual - 1 + fotosGaleria.length) % fotosGaleria.length;
+    atualizarModalGaleria();
+});
+
+document.getElementById('nextGaleria').addEventListener('click', function(e) {
+    e.stopPropagation();
+    if (fotosGaleria.length === 0) return;
+    indiceGaleriaAtual = (indiceGaleriaAtual + 1) % fotosGaleria.length;
+    atualizarModalGaleria();
+});
+
+// Fechar modal da galeria
+modalImagem.addEventListener('click', function(e) {
+    if (e.target === this) {
+        this.classList.remove('active');
+    }
+});
+fecharModal.addEventListener('click', function() {
+    modalImagem.classList.remove('active');
+});
+
+// ====== LISTENER DE TECLADO (ATUALIZADO) ======
+document.addEventListener('keydown', function(e) {
+    // Se o modal da galeria estiver ativo, navega pelas fotos da galeria
+    if (modalImagem.classList.contains('active')) {
+        if (e.key === 'ArrowLeft') {
+            document.getElementById('prevGaleria').click();
+            e.preventDefault();
+        } else if (e.key === 'ArrowRight') {
+            document.getElementById('nextGaleria').click();
+            e.preventDefault();
+        } else if (e.key === 'Escape') {
+            modalImagem.classList.remove('active');
+        }
+        return;
+    }
+
+    // Se o modal de prévia estiver ativo, navega pelas fotos da prévia
+    if (modalPreview.classList.contains('active')) {
+        if (e.key === 'ArrowLeft') {
+            document.getElementById('prevFoto').click();
+            e.preventDefault();
+        } else if (e.key === 'ArrowRight') {
+            document.getElementById('nextFoto').click();
+            e.preventDefault();
+        } else if (e.key === 'Escape') {
+            modalPreview.classList.remove('active');
+        }
+        return;
+    }
+});
+
+// ====== FUNÇÃO LIBERAR FORMULÁRIO ======
+function liberarFormulario() {
+    inputNomeEl.disabled = false;
+    btnConfirmarEl.disabled = false;
+    pagesElement.classList.add('interactive');
+    coverElement.removeEventListener('animationend', liberarFormulario);
+}
+
+coverElement.addEventListener('animationend', liberarFormulario);
+
+setTimeout(() => {
+    if (!pagesElement.classList.contains('interactive')) {
+        liberarFormulario();
+    }
+}, 5000);
 
 function setsIguais(setA, setB) {
     if (setA.size !== setB.size) return false;
@@ -181,50 +236,70 @@ function setsIguais(setA, setB) {
     return true;
 }
 
-function atualizarGaleria() {
-    ultimosIds = new Set();
-    primeiraCarga = true;
-    setTimeout(() => carregarGaleria(true), 1500);
-}
 
-// ====== RECARREGA IMEDIATA E REINICIA AUTO-RELOAD ======
 function recarregarGaleriaAgora() {
-    pararAutoReload();
-    carregarGaleria(true);
-    setTimeout(() => {
-        iniciarAutoReload(3000);
-    }, 500);
+    // Com o listener em tempo real, não precisa fazer nada!
+    // O Firestore avisa sozinho quando chega foto nova.
+    console.log('✅ Firestore vai atualizar automaticamente');
 }
 
-function iniciarAutoReload(intervaloMs) {
-    if (intervaloAutoReload) clearInterval(intervaloAutoReload);
-    intervaloAutoReload = setInterval(() => {
-        carregarGaleria(false);
-    }, intervaloMs);
+// ====== LISTENER EM TEMPO REAL ======
+function iniciarListenerFirestore() {
+    if (listenerFirestore) return;   // já está rodando
+
+    listenerFirestore = db.collection('fotos')
+        .orderBy('created', 'desc')
+        .onSnapshot(snapshot => {
+            // Monta o mesmo formato que o resto do código espera
+            fotosGaleria = snapshot.docs.map(doc => {
+                const d = doc.data();
+                return {
+                    url: d.url,
+                    fileId: d.fileId,
+                    nome: d.nome || 'Foto',
+                    created: d.created || 0
+                };
+            }).filter(f => f.fileId);
+
+            fotosGaleria.sort((a, b) => (b.created || 0) - (a.created || 0));
+
+            renderizarGaleria(fotosGaleria);
+            contadorAlbum.textContent = `(${fotosGaleria.length})`;
+
+            console.log('🔴 Firestore atualizou:', fotosGaleria.length, 'fotos');
+        }, erro => {
+            console.error('❌ Erro no listener Firestore:', erro);
+        });
 }
 
-function pararAutoReload() {
-    if (intervaloAutoReload) {
-        clearInterval(intervaloAutoReload);
-        intervaloAutoReload = null;
+// ====== RENDERIZA A GALERIA (extraída de carregarGaleria) ======
+function renderizarGaleria(fotos) {
+    if (!fotos || fotos.length === 0) {
+        galeriaGrid.innerHTML = '<div class="galeria-vazio">📭 Nenhuma foto enviada ainda. Seja o primeiro(a)!</div>';
+        return;
     }
-}
 
-// ====== MODAL GALERIA ======
-modalImagem.addEventListener('click', function(e) {
-    if (e.target === this) {
-        this.classList.remove('active');
-    }
-});
-fecharModal.addEventListener('click', function() {
-    modalImagem.classList.remove('active');
-});
-document.addEventListener('keydown', function(e) {
-    if (e.key === 'Escape') {
-        modalImagem.classList.remove('active');
-        modalPreview.classList.remove('active');
-    }
-});
+    galeriaGrid.innerHTML = '';
+    fotos.forEach((foto, index) => {
+        const fileId = foto.fileId;
+        const div = document.createElement('div');
+        div.className = 'galeria-item';
+        div.dataset.index = index;
+
+        const imgEl = document.createElement('img');
+        imgEl.src = `https://lh3.googleusercontent.com/d/${fileId}=s400?authuser=0&t=${new Date().getTime()}`;
+        imgEl.alt = foto.nome || `Foto ${index + 1}`;
+        imgEl.loading = 'lazy';
+
+        div.addEventListener('click', function(e) {
+            e.stopPropagation();
+            abrirModalGaleria(parseInt(this.dataset.index));
+        });
+
+        div.appendChild(imgEl);
+        galeriaGrid.appendChild(div);
+    });
+}
 
 // ====== FILTROS ======
 function aplicarFiltroPreview() {
@@ -396,7 +471,7 @@ function aplicarFiltroCanvas(dataURL, filtroId) {
     });
 }
 
-// ====== ANIMAÇÃO DE PROGRESSO (sem percentual no label) ======
+// ====== ANIMAÇÃO DE PROGRESSO ======
 function animarProgresso(de, para, duracao, label) {
     return new Promise((resolve) => {
         const startTime = performance.now();
@@ -406,11 +481,9 @@ function animarProgresso(de, para, duracao, label) {
         function step(timestamp) {
             const elapsed = timestamp - startTime;
             const progress = Math.min(elapsed / duracao, 1);
-            // Easing ease-in-out suave
             const eased = progress < 0.5 ? 2 * progress * progress : -1 + (4 - 2 * progress) * progress;
             const currentVal = startVal + diff * eased;
             const percent = Math.round(currentVal);
-            // Só exibe o label sem percentual se foi fornecido, senão usa o padrão com percentual
             const labelFinal = label || `Enviando... ${percent}%`;
             atualizarProgresso(currentVal, labelFinal, `${percent}%`, true);
             if (progress < 1) {
@@ -425,8 +498,12 @@ function animarProgresso(de, para, duracao, label) {
     });
 }
 
-// ====== ENVIO CÂMERA (uma única foto) ======
+// ====== ENVIO CÂMERA ======
 async function enviarFotoCamera() {
+
+    if (btnEnviarPreview.disabled) return;
+        btnEnviarPreview.disabled = true;
+
     if (!fotoCapturada) {
         alert("Nenhuma foto para enviar.");
         return;
@@ -438,10 +515,8 @@ async function enviarFotoCamera() {
     progressContainer.style.display = 'block';
     atualizarProgresso(0, 'Preparando...', '0%', true);
 
-    // Animação mais lenta: 6 segundos para ir de 0 a 90%
     await animarProgresso(0, 90, 6000, 'Enviando...');
 
-    // Envia a foto
     const imagemFinal = await aplicarFiltroCanvas(fotoCapturada, filtroAtual);
     const agora = new Date();
     const nomeArquivo = `Capturado por ${nomeConvidado}.png`;
@@ -457,7 +532,6 @@ async function enviarFotoCamera() {
             body: formData
         });
 
-        // Quando a resposta chegar, vai rapidamente a 100% (0.5s)
         await animarProgresso(90, 100, 500, '✅ Concluído!');
 
         const result = await response.json();
@@ -503,8 +577,12 @@ async function enviarFotoCamera() {
     }
 }
 
-// ====== ENVIO MÚLTIPLO (cada foto com seu ciclo contínuo e mais lento) ======
+// ====== ENVIO MÚLTIPLO ======
 async function enviarMultiplasFotos() {
+
+    if (btnEnviarPreview.disabled) return;
+        btnEnviarPreview.disabled = true;
+
     if (fotosParaEnviar.length === 0) {
         alert("Nenhuma foto para enviar.");
         return;
@@ -521,24 +599,20 @@ async function enviarMultiplasFotos() {
     let sucesso = 0;
     let falhas = 0;
 
-    // Loop por cada foto
     for (let i = 0; i < total; i++) {
         const imgDataOriginal = fotosParaEnviar[i];
         statusDiv.innerHTML = `📤 Enviando foto ${i+1} de ${total}...`;
         statusDiv.className = "loading";
 
-        // Se não for a primeira, reseta a barra para 0% com um pequeno delay
         if (i > 0) {
             await new Promise(resolve => setTimeout(resolve, 400));
             atualizarProgresso(0, `Preparando foto ${i+1}/${total}`, '0%', true);
             await new Promise(resolve => setTimeout(resolve, 300));
         }
 
-        // Anima de 0 a 90% em 6 segundos (mais lento) - label sem percentual
         const label = `Enviando foto ${i+1}/${total}`;
         await animarProgresso(0, 90, 6000, label);
 
-        // Envia a foto (pode demorar)
         try {
             const imagemFinal = await aplicarFiltroCanvas(imgDataOriginal, filtroAtual);
             const agora = new Date();
@@ -566,13 +640,10 @@ async function enviarMultiplasFotos() {
             console.error(`Erro ao enviar foto ${i+1}:`, err);
         }
 
-        // Após a resposta, vai a 100% rapidamente (0.5s)
         await animarProgresso(90, 100, 500, `✅ Foto ${i+1}/${total} concluída!`);
-        // Pequena pausa antes da próxima
         await new Promise(resolve => setTimeout(resolve, 500));
     }
 
-    // Todas as fotos foram processadas
     fotosParaEnviar = [];
     indiceAtual = 0;
     fileInput.value = '';
@@ -698,13 +769,126 @@ function confirmarNome() {
 
     nomeConvidado = capitalizarNome(nome);
     nomeConfirmado = true;
+
+    // 💾 Salva o nome para persistir após recarregar a página
+    try {
+        localStorage.setItem('nomeConvidadoAlbum', nomeConvidado);
+    } catch (e) { /* ignora se localStorage indisponível */ }
+
     overlay.classList.add('hidden');
     mainContent.classList.add('visible');
     statusDiv.innerHTML = `💖 Olá, ${nomeConvidado}! Toque na área da câmera ou faça upload.`;
     statusDiv.className = "info";
 
-    carregarGaleria(true);
-    iniciarAutoReload(3000);
+    iniciarListenerFirestore();
+}
+
+// ====== PERSISTÊNCIA DO NOME (LOGIN) ======
+function verificarNomeSalvo() {
+    let nomeSalvo = null;
+    try {
+        nomeSalvo = localStorage.getItem('nomeConvidadoAlbum');
+    } catch (e) { /* ignora */ }
+
+    if (nomeSalvo && nomeSalvo.trim() !== '') {
+        nomeConvidado = nomeSalvo;
+        nomeConfirmado = true;
+
+        overlay.classList.add('hidden');
+        mainContent.classList.add('visible');
+        statusDiv.innerHTML = `💖 Bem-vindo(a) de volta, ${nomeConvidado}! Toque na câmera ou faça upload.`;
+        statusDiv.className = "info";
+
+        iniciarListenerFirestore();
+    }
+}
+
+// ====== ABRIR MODAL DE SAIR ======
+function abrirModalSair() {
+    modalSair.classList.add('active');
+}
+
+// ====== CONFIRMAR SAÍDA (executa a limpeza) ======
+function sair() {
+    modalSair.classList.remove('active');
+
+    try {
+        localStorage.removeItem('nomeConvidadoAlbum');
+    } catch (e) { /* ignora */ }
+
+    nomeConvidado = '';
+    nomeConfirmado = false;
+
+    // Para a câmera, se estiver ativa
+    if (streamAtual) {
+        streamAtual.getTracks().forEach(track => track.stop());
+        streamAtual = null;
+    }
+    cameraPronta = false;
+    facingMode = "environment";
+    if (video) {
+        video.srcObject = null;
+        video.style.display = 'none';
+        video.classList.remove('espelhado');
+    }
+    placeholder.style.display = 'flex';
+    btnCapturar.style.display = 'none';
+    btnTrocarCamera.style.display = 'none';
+    exposureControl.style.display = 'none';
+
+    // Para o auto-reload da galeria
+    if (listenerFirestore) {
+        listenerFirestore();
+        listenerFirestore = null;
+    }
+
+    // Fecha modais se estiverem abertos
+    modalPreview.classList.remove('active');
+    modalImagem.classList.remove('active');
+
+    // Limpa estados temporários
+    fotoCapturada = null;
+    fotosParaEnviar = [];
+    indiceAtual = 0;
+    if (fileInput) fileInput.value = '';
+    filtroAtual = 'none';
+    if (filtrosContainer) {
+        document.querySelectorAll('.btn-filtro').forEach(btn => {
+            btn.classList.toggle('ativo', btn.dataset.filtro === 'none');
+        });
+    }
+
+    // Volta para a tela do livro / formulário
+    overlay.classList.remove('hidden');
+    mainContent.classList.remove('visible');
+
+    // Reset do formulário
+    inputNome.value = '';
+    btnConfirmar.disabled = true;
+
+    statusDiv.innerHTML = "💖 Digite seu nome para começar";
+    statusDiv.className = "info";
+}
+
+// ====== EVENTO DO BOTÃO SAIR ======
+if (btnSair) {
+    btnSair.addEventListener('click', abrirModalSair);
+    btnCancelarSair.addEventListener('click', () => modalSair.classList.remove('active'));
+    btnConfirmarSair.addEventListener('click', sair);
+
+    // Fecha o modal ao clicar fora do card
+    modalSair.addEventListener('click', function(e) {
+        if (e.target === this) {
+            this.classList.remove('active');
+        }
+    });
+
+    // Fecha o modal com a tecla ESC
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape' && modalSair.classList.contains('active')) {
+            modalSair.classList.remove('active');
+        }
+    });
 }
 
 btnConfirmar.addEventListener('click', confirmarNome);
@@ -859,21 +1043,20 @@ btnCapturar.addEventListener('click', capturarFoto);
 btnTrocarCamera.addEventListener('click', trocarCamera);
 btnEnviarPreview.addEventListener('click', handleEnviar);
 
-// ====== AUTO-RECARREGAR ======
-document.addEventListener('visibilitychange', function() {
-    if (!document.hidden) {
-        if (nomeConfirmado) {
-            carregarGaleria(false);
-        }
-    }
-});
 
 window.addEventListener('beforeunload', function() {
     if (streamAtual) {
         streamAtual.getTracks().forEach(track => track.stop());
     }
-    pararAutoReload();
+    // Cancela o listener do Firestore (libera a conexão WebSocket)
+    if (listenerFirestore) {
+        listenerFirestore();
+        listenerFirestore = null;
+    }
 });
 
 statusDiv.innerHTML = "💖 Digite seu nome para começar";
 statusDiv.className = "info";
+
+// Verifica se já existe um nome salvo (mantém o login após recarregar)
+verificarNomeSalvo();

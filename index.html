@@ -33,7 +33,7 @@
                             <p class="subtitle-overlay">Bem-vindo ao álbum de</p>
                             <div class="nome-casal">Danielly &amp; Felipe</div>
                             <p>Digite seu nome para registrar fotos no álbum</p>
-                            <input type="text" id="inputNome" placeholder="Seu nome (ex: Maria Clara)" maxlength="30" autocomplete="off" />
+                            <input type="text" id="inputNome" placeholder="Seu nome (ex: Maria Clara)" maxlength="30" autocomplete="off" disabled/>
                             <button class="btn-confirmar" id="btnConfirmarNome" disabled>Confirmar Nome</button>
                         </div>
                     </div>
@@ -55,6 +55,7 @@
 
     <!-- ====== CONTEÚDO PRINCIPAL ====== -->
     <div id="main-content">
+        <button class="btn-sair" id="btnSair" title="Sair da conta">Sair</button>
         <div class="container">
             <p class="subtitle-main">O álbum compartilhado de</p>
             <div class="nome-casal-main">Danielly &amp; Felipe</div>
@@ -124,13 +125,20 @@
             <div class="footer-note">
                 Com carinho, os noivos 🌹
             </div>
+           
+        </div>
+        <div class="footer-powered">
+            Developed by Nasci
         </div>
     </div>
 
     <!-- ====== MODAL PARA EXIBIR FOTO DA GALERIA ====== -->
     <div id="modalImagem">
         <span class="fechar-modal" id="fecharModal">✕</span>
+        <button class="preview-nav prev" id="prevGaleria">‹</button>
         <img id="modalImg" src="" alt="Foto ampliada" />
+        <button class="preview-nav next" id="nextGaleria">›</button>
+        <div class="preview-counter" id="contadorGaleria">1/1</div>
     </div>
 
     <!-- ====== MODAL DE PRÉVIA ====== -->
@@ -169,6 +177,23 @@
         </div>
     </div>
 
+    <!-- ====== MODAL DE CONFIRMAÇÃO SAIR ====== -->
+    <div id="modalSair">
+        <div class="modal-sair-card">
+            <!-- <div class="modal-sair-icon">👋</div> -->
+            <h3 class="modal-sair-titulo">Deseja sair?</h3>
+            <p class="modal-sair-texto">Você precisará digitar seu nome novamente para entrar no álbum.</p>
+            <div class="modal-sair-actions">
+                <button class="btn btn-secondary" id="btnCancelarSair">Cancelar</button>
+                <button class="btn btn-primary" id="btnConfirmarSair">Sim, sair</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
+    
     <!-- JavaScript externo -->
     <script src="script.js" defer></script>
 </body>
