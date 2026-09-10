@@ -462,7 +462,7 @@ function aplicarFiltroCanvas(dataURL, filtroId) {
             const filtroCSS = filtrosMap[filtroId] || 'none';
             ctx.filter = filtroCSS;
             ctx.drawImage(img, 0, 0);
-            resolve(c.toDataURL('image/png'));
+            resolve(c.toDataURL('image/jpeg', 0.85));
         };
         img.onerror = function() {
             resolve(dataURL);
@@ -1018,7 +1018,7 @@ function tirarFotoNow() {
     context.filter = 'none';
 
     fotosParaEnviar = [];
-    fotoCapturada = canvas.toDataURL('image/png');
+    fotoCapturada = canvas.toDataURL('image/jpeg', 0.85);
     previewImg.src = fotoCapturada;
     contadorFotos.textContent = '1/1';
     prevFoto.style.display = 'none';
