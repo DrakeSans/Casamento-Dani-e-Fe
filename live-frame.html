@@ -3,7 +3,7 @@
 
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <title>📺 Apresentação - Danielly & Felipe</title>
 
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -22,9 +22,9 @@
             box-sizing: border-box;
         }
 
-        body {
+        html, body {
             width: 100vw;
-            height: 100vh;
+            height: 100dvh;
             overflow: hidden;
             background: linear-gradient(145deg, #fdf6f7 0%, #fce4e8 40%, #f8d5db 100%);
             background-image: radial-gradient(circle at 20% 50%, rgba(255, 182, 193, 0.2) 0%, transparent 50%),
@@ -57,12 +57,13 @@
 
         #apresentacao {
             width: 100%;
-            height: 100%;
+            height: 100dvh;
             position: relative;
             display: flex;
             align-items: center;
             justify-content: center;
             z-index: 1;
+            padding-top: env(safe-area-inset-top);
         }
 
         /* ===== TELA DE ESPERA ===== */
@@ -137,7 +138,6 @@
             z-index: 2;
         }
 
-        /* ===== PALCO — sem altura fixa, se ajusta ao sizer ===== */
         #palco {
             position: relative;
             display: flex;
@@ -148,7 +148,6 @@
             min-height: 0;
         }
 
-        /* Sizer invisível — dá o tamanho exato que a moldura ocuparia */
         #sizer {
             display: block;
             max-width: calc(96vw - 48px);
@@ -157,11 +156,10 @@
             height: auto;
             visibility: hidden;
             pointer-events: none;
-            margin: 24px; /* = padding da moldura + borda */
+            margin: 24px;
             flex-shrink: 0;
         }
 
-        /* ===== MOLDURA ===== */
         .moldura {
             position: absolute;
             top: 50%;
@@ -278,15 +276,16 @@
             text-overflow: ellipsis;
         }
 
-        /* ===== BARRA DE PROGRESSO ===== */
+        /* ===== 🌟 BARRA DE PROGRESSO — AGORA NO TOPO ===== */
         #barraProgresso {
             position: absolute;
-            bottom: 0;
+            top: 0;
             left: 0;
             width: 100%;
             height: 4px;
             background: rgba(212, 175, 55, 0.15);
             z-index: 10;
+            margin-top: env(safe-area-inset-top);
         }
 
         #progressoFill {
@@ -307,35 +306,10 @@
             animation: shimmer 3s linear infinite;
         }
 
-        /* ===== PAUSE ===== */
-        #indicadorPause {
-            position: absolute;
-            inset: 0;
-            z-index: 100;
-            display: none;
-            align-items: center;
-            justify-content: center;
-            background: rgba(122, 42, 42, 0.3);
-            backdrop-filter: blur(10px);
-            -webkit-backdrop-filter: blur(10px);
-            pointer-events: none;
-        }
-
-        #indicadorPause.ativo {
-            display: flex;
-        }
-
-        #indicadorPause .icone {
-            font-size: clamp(3rem, 8vw, 6rem);
-            color: #d4af37;
-            text-shadow: 0 0 40px rgba(212, 175, 55, 0.8);
-            animation: pulseEmoji 1.5s ease-in-out infinite;
-        }
-
-        /* ===== STATUS ===== */
+        /* ===== 🌟 STATUS — AGORA NO TOPO ===== */
         #statusConexao {
             position: absolute;
-            bottom: 15px;
+            top: calc(14px + env(safe-area-inset-top));
             right: 20px;
             z-index: 20;
             display: flex;
@@ -368,22 +342,48 @@
             animation: none;
         }
 
-        /* ===== MOBILE — ajustes pequenos ===== */
+        /* ===== PAUSE ===== */
+        #indicadorPause {
+            position: absolute;
+            inset: 0;
+            z-index: 100;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            background: rgba(122, 42, 42, 0.3);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            pointer-events: none;
+        }
+
+        #indicadorPause.ativo {
+            display: flex;
+        }
+
+        #indicadorPause .icone {
+            font-size: clamp(3rem, 8vw, 6rem);
+            color: #d4af37;
+            text-shadow: 0 0 40px rgba(212, 175, 55, 0.8);
+            animation: pulseEmoji 1.5s ease-in-out infinite;
+        }
+
+        /* ===== 📱 MOBILE ===== */
         @media (max-width: 600px) {
             #slideAtual {
                 gap: 10px;
-                padding: 1.5vh 2vw;
+                padding: 2vh 2vw;
+                padding-top: calc(2vh + 30px + env(safe-area-inset-top));
             }
 
             #sizer {
                 max-width: calc(96vw - 40px);
-                max-height: calc(74vh - 48px);
+                max-height: calc(70vh - 48px);
                 margin: 20px;
             }
 
             .moldura img {
                 max-width: calc(96vw - 40px);
-                max-height: calc(74vh - 48px);
+                max-height: calc(70vh - 48px);
             }
 
             #infoAutor {
@@ -400,8 +400,13 @@
 
             #statusConexao {
                 font-size: 0.7rem;
-                bottom: 10px;
-                right: 12px;
+                top: calc(20px + env(safe-area-inset-top));
+                right: 14px;
+            }
+
+            #barraProgresso {
+                height: 3px;
+                margin-top: env(safe-area-inset-top);
             }
 
             body::before,
@@ -411,22 +416,23 @@
             }
         }
 
-        /* ===== LANDSCAPE (celular deitado) ===== */
+        /* ===== LANDSCAPE ===== */
         @media (max-height: 500px) and (orientation: landscape) {
             #slideAtual {
                 gap: 8px;
                 padding: 1vh 2vw;
+                padding-top: calc(1vh + 28px + env(safe-area-inset-top));
             }
 
             #sizer {
                 max-width: calc(80vw - 40px);
-                max-height: calc(88vh - 48px);
+                max-height: calc(84vh - 48px);
                 margin: 20px;
             }
 
             .moldura img {
                 max-width: calc(80vw - 40px);
-                max-height: calc(88vh - 48px);
+                max-height: calc(84vh - 48px);
             }
 
             #infoAutor {
@@ -453,7 +459,6 @@
 
         <div id="slideAtual">
             <div id="palco">
-                <!-- Sizer invisível — define a altura do palco -->
                 <img id="sizer" src="" alt="" aria-hidden="true">
 
                 <div class="moldura" id="molduraA">
@@ -566,7 +571,6 @@
             return fotos[proximoIdx];
         }
 
-        // 👇 Atualiza o sizer com a foto atual (faz o palco ter o tamanho certo)
         function atualizarSizer(foto) {
             if (!foto) return;
             sizer.src = `https://lh3.googleusercontent.com/d/${foto.fileId}=w2000?authuser=0&t=${Date.now()}`;
@@ -660,7 +664,6 @@
                 elCarregando.alt = foto.nome;
                 reiniciarAnimacaoAssentar(elCarregando);
 
-                // 👇 Atualiza o sizer → palco muda de tamanho junto
                 atualizarSizer(foto);
 
                 fileIdAtual = foto.fileId;
@@ -805,7 +808,6 @@
             elAtiva.alt = fotos[0].nome;
             reiniciarAnimacaoAssentar(elAtiva);
 
-            // 👇 Sizer com a primeira foto
             atualizarSizer(fotos[0]);
 
             molduraAtiva.classList.add('ativa');
@@ -877,7 +879,6 @@
             const elProxima = getFotoEl(layerCarregando);
             reiniciarAnimacaoAssentar(elProxima);
 
-            // 👇 Sizer acompanha a nova foto → palco redimensiona JUNTO com o crossfade
             atualizarSizer(proxima);
 
             const molduraAtiva = getMolduraEl(layerAtiva);
