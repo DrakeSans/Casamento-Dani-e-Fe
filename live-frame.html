@@ -31,9 +31,9 @@
                 radial-gradient(circle at 80% 20%, rgba(255, 215, 0, 0.1) 0%, transparent 50%);
             font-family: 'Quicksand', sans-serif;
             color: #5a3e3e;
+            -webkit-tap-highlight-color: transparent;
         }
 
-        /* ✨ ANIMAÇÃO 1: Sparkles dourados flutuando no fundo */
         body::before,
         body::after {
             content: '';
@@ -47,16 +47,8 @@
             animation: flutuarFundo 20s ease-in-out infinite;
         }
 
-        body::before {
-            top: -150px;
-            left: -150px;
-        }
-
-        body::after {
-            bottom: -150px;
-            right: -150px;
-            animation-delay: -10s;
-        }
+        body::before { top: -150px; left: -150px; }
+        body::after { bottom: -150px; right: -150px; animation-delay: -10s; }
 
         @keyframes flutuarFundo {
             0%, 100% { transform: translate(0, 0) scale(1); opacity: 0.8; }
@@ -73,6 +65,7 @@
             z-index: 1;
         }
 
+        /* ===== TELA DE ESPERA ===== */
         #telaEspera {
             position: absolute;
             inset: 0;
@@ -131,6 +124,7 @@
             50% { transform: scale(1.15); }
         }
 
+        /* ===== SLIDE ===== */
         #slideAtual {
             position: absolute;
             inset: 0;
@@ -138,27 +132,41 @@
             flex-direction: column;
             align-items: center;
             justify-content: center;
-            padding: 3vh 2vw;
-            padding-bottom: 4vh;
+            padding: 2vh 2vw;
+            gap: clamp(10px, 1.5vh, 24px);
             z-index: 2;
         }
 
+        /* ===== PALCO — sem altura fixa, se ajusta ao sizer ===== */
         #palco {
             position: relative;
-            width: 96vw;
-            max-width: 96vw;
-            height: 68vh;
             display: flex;
-            align-items: flex-end;
+            align-items: center;
             justify-content: center;
+            max-width: 96vw;
+            flex-shrink: 1;
+            min-height: 0;
+        }
+
+        /* Sizer invisível — dá o tamanho exato que a moldura ocuparia */
+        #sizer {
+            display: block;
+            max-width: calc(96vw - 48px);
+            max-height: calc(72vh - 48px);
+            width: auto;
+            height: auto;
+            visibility: hidden;
+            pointer-events: none;
+            margin: 24px; /* = padding da moldura + borda */
             flex-shrink: 0;
         }
 
+        /* ===== MOLDURA ===== */
         .moldura {
             position: absolute;
-            bottom: 0;
+            top: 50%;
             left: 50%;
-            transform: translateX(-50%);
+            transform: translate(-50%, -50%);
             display: inline-flex;
             align-items: center;
             justify-content: center;
@@ -182,15 +190,14 @@
 
         .moldura img {
             display: block;
-            max-width: calc(96vw - 40px);
-            max-height: calc(68vh - 40px);
+            max-width: calc(96vw - 48px);
+            max-height: calc(72vh - 48px);
             width: auto;
             height: auto;
             border-radius: 4px;
             transform-origin: center center;
         }
 
-        /* ✨ ANIMAÇÃO 2: Foto "assenta" com leve zoom-out ao entrar */
         @keyframes assentarFoto {
             from { transform: scale(1.03); }
             to { transform: scale(1); }
@@ -200,7 +207,6 @@
             animation: assentarFoto 1.5s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards;
         }
 
-        /* ✨ ANIMAÇÃO 3: Cantos da moldura brilham ocasionalmente */
         @keyframes brilhoCanto {
             0%, 80%, 100% {
                 box-shadow: 0 20px 60px rgba(122, 42, 42, 0.25),
@@ -221,8 +227,8 @@
             animation: brilhoCanto 8s ease-in-out infinite;
         }
 
+        /* ===== INFO DO AUTOR ===== */
         #infoAutor {
-            margin-top: clamp(16px, 2.5vh, 34px);
             display: flex;
             align-items: center;
             justify-content: center;
@@ -236,7 +242,7 @@
             box-shadow: 0 8px 30px rgba(122, 42, 42, 0.15);
             opacity: 0;
             transition: opacity 0.8s ease;
-            max-width: min(90vw, 800px);
+            max-width: 90vw;
             flex-shrink: 0;
         }
 
@@ -244,7 +250,6 @@
             opacity: 1;
         }
 
-        /* ✨ ANIMAÇÃO 4: Nome do autor sobe suavemente */
         @keyframes nomeSobe {
             from { transform: translateY(14px); }
             to { transform: translateY(0); }
@@ -273,6 +278,7 @@
             text-overflow: ellipsis;
         }
 
+        /* ===== BARRA DE PROGRESSO ===== */
         #barraProgresso {
             position: absolute;
             bottom: 0;
@@ -292,7 +298,6 @@
             transition: width 0.1s linear;
         }
 
-        /* ✨ ANIMAÇÃO 5: Barra com shimmer contínuo */
         @keyframes shimmer {
             0% { background-position: -200% 0; }
             100% { background-position: 200% 0; }
@@ -302,6 +307,7 @@
             animation: shimmer 3s linear infinite;
         }
 
+        /* ===== PAUSE ===== */
         #indicadorPause {
             position: absolute;
             inset: 0;
@@ -326,6 +332,7 @@
             animation: pulseEmoji 1.5s ease-in-out infinite;
         }
 
+        /* ===== STATUS ===== */
         #statusConexao {
             position: absolute;
             bottom: 15px;
@@ -360,6 +367,76 @@
             box-shadow: 0 0 10px #f44336;
             animation: none;
         }
+
+        /* ===== MOBILE — ajustes pequenos ===== */
+        @media (max-width: 600px) {
+            #slideAtual {
+                gap: 10px;
+                padding: 1.5vh 2vw;
+            }
+
+            #sizer {
+                max-width: calc(96vw - 40px);
+                max-height: calc(74vh - 48px);
+                margin: 20px;
+            }
+
+            .moldura img {
+                max-width: calc(96vw - 40px);
+                max-height: calc(74vh - 48px);
+            }
+
+            #infoAutor {
+                padding: 8px 18px;
+            }
+
+            #infoAutor .nome {
+                font-size: 0.85rem;
+            }
+
+            #infoAutor .icone {
+                font-size: 0.9rem;
+            }
+
+            #statusConexao {
+                font-size: 0.7rem;
+                bottom: 10px;
+                right: 12px;
+            }
+
+            body::before,
+            body::after {
+                width: 250px;
+                height: 250px;
+            }
+        }
+
+        /* ===== LANDSCAPE (celular deitado) ===== */
+        @media (max-height: 500px) and (orientation: landscape) {
+            #slideAtual {
+                gap: 8px;
+                padding: 1vh 2vw;
+            }
+
+            #sizer {
+                max-width: calc(80vw - 40px);
+                max-height: calc(88vh - 48px);
+                margin: 20px;
+            }
+
+            .moldura img {
+                max-width: calc(80vw - 40px);
+                max-height: calc(88vh - 48px);
+            }
+
+            #infoAutor {
+                padding: 6px 18px;
+            }
+
+            #infoAutor .nome {
+                font-size: 0.8rem;
+            }
+        }
     </style>
 </head>
 
@@ -376,6 +453,9 @@
 
         <div id="slideAtual">
             <div id="palco">
+                <!-- Sizer invisível — define a altura do palco -->
+                <img id="sizer" src="" alt="" aria-hidden="true">
+
                 <div class="moldura" id="molduraA">
                     <img id="fotoLayerA" src="" alt="">
                 </div>
@@ -406,7 +486,6 @@
     </div>
 
     <script>
-        // ====== CONFIGURAÇÃO ======
         const SEGUNDOS_POR_FOTO = 15;
         const FADE_MS = 1200;
 
@@ -422,7 +501,6 @@
         firebase.initializeApp(firebaseConfig);
         const db = firebase.firestore();
 
-        // ====== ESTADO ======
         let fotos = [];
         let pausado = false;
         let listener = null;
@@ -440,7 +518,6 @@
         let proximaFotoPronta = false;
         let timer = null;
 
-        // ====== ELEMENTOS ======
         const fotoLayerA = document.getElementById('fotoLayerA');
         const fotoLayerB = document.getElementById('fotoLayerB');
         const molduraA = document.getElementById('molduraA');
@@ -452,8 +529,8 @@
         const indicadorPause = document.getElementById('indicadorPause');
         const dotConexao = document.getElementById('dotConexao');
         const textoConexao = document.getElementById('textoConexao');
+        const sizer = document.getElementById('sizer');
 
-        // ====== HELPERS ======
         function getFotoEl(layer) {
             return layer === 'A' ? fotoLayerA : fotoLayerB;
         }
@@ -489,17 +566,19 @@
             return fotos[proximoIdx];
         }
 
-        // 🎯 Reinicia a animação de "assentar" numa imagem
+        // 👇 Atualiza o sizer com a foto atual (faz o palco ter o tamanho certo)
+        function atualizarSizer(foto) {
+            if (!foto) return;
+            sizer.src = `https://lh3.googleusercontent.com/d/${foto.fileId}=w2000?authuser=0&t=${Date.now()}`;
+        }
+
         function reiniciarAnimacaoAssentar(imgEl) {
             if (!imgEl) return;
             imgEl.style.animation = 'none';
-            void imgEl.offsetWidth; // força reflow
+            void imgEl.offsetWidth;
             imgEl.style.animation = 'assentarFoto 1.5s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards';
         }
 
-        // ===================================================================
-        // 🎯 VERIFICA O ESTADO
-        // ===================================================================
         function verificarEstadoAtual() {
             if (fotos.length === 0) {
                 console.log('📭 Sem fotos, mostrando tela de espera');
@@ -580,6 +659,9 @@
                 elCarregando.src = url;
                 elCarregando.alt = foto.nome;
                 reiniciarAnimacaoAssentar(elCarregando);
+
+                // 👇 Atualiza o sizer → palco muda de tamanho junto
+                atualizarSizer(foto);
 
                 fileIdAtual = foto.fileId;
 
@@ -662,7 +744,6 @@
             img.src = url;
         }
 
-        // ====== LISTENER FIRESTORE ======
         function iniciarListener() {
             listener = db.collection('fotos')
                 .orderBy('created', 'desc')
@@ -710,7 +791,6 @@
                 });
         }
 
-        // ====== SLIDESHOW ======
         function iniciarSlideshow() {
             if (fotos.length === 0) return;
 
@@ -724,6 +804,10 @@
             elAtiva.src = `https://lh3.googleusercontent.com/d/${fotos[0].fileId}=w2000?authuser=0&t=${Date.now()}`;
             elAtiva.alt = fotos[0].nome;
             reiniciarAnimacaoAssentar(elAtiva);
+
+            // 👇 Sizer com a primeira foto
+            atualizarSizer(fotos[0]);
+
             molduraAtiva.classList.add('ativa');
 
             atualizarAutor(fotos[0]);
@@ -790,9 +874,11 @@
             fileIdAtual = proxima.fileId;
             emTransicao = true;
 
-            // 🎬 Reinicia a animação "assentar" na foto que vai entrar
             const elProxima = getFotoEl(layerCarregando);
             reiniciarAnimacaoAssentar(elProxima);
+
+            // 👇 Sizer acompanha a nova foto → palco redimensiona JUNTO com o crossfade
+            atualizarSizer(proxima);
 
             const molduraAtiva = getMolduraEl(layerAtiva);
             const molduraProxima = getMolduraEl(layerCarregando);
@@ -841,7 +927,6 @@
             progressoFill.style.width = '0%';
         }
 
-        // ====== PAUSE / RESUME ======
         document.body.addEventListener('click', () => {
             pausado = !pausado;
             indicadorPause.classList.toggle('ativo', pausado);
@@ -856,7 +941,6 @@
             }
         });
 
-        // ====== WAKE LOCK ======
         async function manterAcordado() {
             try {
                 if ('wakeLock' in navigator) {
@@ -868,7 +952,6 @@
             }
         }
 
-        // ====== INICIALIZAÇÃO ======
         manterAcordado();
         iniciarListener();
 
