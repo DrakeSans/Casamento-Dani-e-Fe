@@ -1,0 +1,879 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>📺 Apresentação - Danielly & Felipe</title>
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Great+Vibes&family=Playfair+Display:ital,wght@0,400;0,600;1,400;1,500&family=Quicksand:wght@300;400;500;600&display=swap"
+        rel="stylesheet">
+
+    <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
+
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            width: 100vw;
+            height: 100vh;
+            overflow: hidden;
+            background: linear-gradient(145deg, #fdf6f7 0%, #fce4e8 40%, #f8d5db 100%);
+            background-image: radial-gradient(circle at 20% 50%, rgba(255, 182, 193, 0.2) 0%, transparent 50%),
+                radial-gradient(circle at 80% 20%, rgba(255, 215, 0, 0.1) 0%, transparent 50%);
+            font-family: 'Quicksand', sans-serif;
+            color: #5a3e3e;
+        }
+
+        /* ✨ ANIMAÇÃO 1: Sparkles dourados flutuando no fundo */
+        body::before,
+        body::after {
+            content: '';
+            position: fixed;
+            width: 400px;
+            height: 400px;
+            background: radial-gradient(circle, rgba(212, 175, 55, 0.18) 0%, transparent 70%);
+            border-radius: 50%;
+            pointer-events: none;
+            z-index: 0;
+            animation: flutuarFundo 20s ease-in-out infinite;
+        }
+
+        body::before {
+            top: -150px;
+            left: -150px;
+        }
+
+        body::after {
+            bottom: -150px;
+            right: -150px;
+            animation-delay: -10s;
+        }
+
+        @keyframes flutuarFundo {
+            0%, 100% { transform: translate(0, 0) scale(1); opacity: 0.8; }
+            50% { transform: translate(80px, 60px) scale(1.25); opacity: 1; }
+        }
+
+        #apresentacao {
+            width: 100%;
+            height: 100%;
+            position: relative;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1;
+        }
+
+        #telaEspera {
+            position: absolute;
+            inset: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            padding: 40px;
+            background: linear-gradient(145deg, #fdf6f7 0%, #fce4e8 40%, #f8d5db 100%);
+            z-index: 5;
+        }
+
+        #telaEspera .nome-casal {
+            font-family: 'Great Vibes', cursive;
+            font-size: clamp(3rem, 8vw, 8rem);
+            color: #7a2a2a;
+            text-shadow: 0 0 40px rgba(212, 175, 55, 0.3), 0 4px 20px rgba(122, 42, 42, 0.15);
+            letter-spacing: 3px;
+            line-height: 1.2;
+            margin-bottom: 20px;
+            animation: pulseNome 4s ease-in-out infinite;
+        }
+
+        @keyframes pulseNome {
+            0%, 100% { opacity: 1; transform: scale(1); }
+            50% { opacity: 0.9; transform: scale(1.02); }
+        }
+
+        #telaEspera .divisor {
+            width: 60%;
+            height: 2px;
+            background: linear-gradient(90deg, transparent, #d4af37, transparent);
+            margin: 20px 0;
+            opacity: 0.6;
+        }
+
+        #telaEspera .instrucao {
+            font-family: 'Playfair Display', serif;
+            font-style: italic;
+            font-size: clamp(1rem, 1.5vw, 1.5rem);
+            color: #a06060;
+            opacity: 0.8;
+            letter-spacing: 4px;
+        }
+
+        #telaEspera .emoji {
+            font-size: clamp(3rem, 6vw, 6rem);
+            margin-bottom: 30px;
+            animation: pulseEmoji 2s ease-in-out infinite;
+            filter: drop-shadow(0 4px 20px rgba(212, 175, 55, 0.3));
+        }
+
+        @keyframes pulseEmoji {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.15); }
+        }
+
+        #slideAtual {
+            position: absolute;
+            inset: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 3vh 2vw;
+            padding-bottom: 4vh;
+            z-index: 2;
+        }
+
+        #palco {
+            position: relative;
+            width: 96vw;
+            max-width: 96vw;
+            height: 68vh;
+            display: flex;
+            align-items: flex-end;
+            justify-content: center;
+            flex-shrink: 0;
+        }
+
+        .moldura {
+            position: absolute;
+            bottom: 0;
+            left: 50%;
+            transform: translateX(-50%);
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            padding: clamp(6px, 0.9vw, 14px);
+            background: linear-gradient(145deg, #fff7f8, #fff7f8);
+            border-radius: 8px;
+            box-shadow: 0 20px 60px rgba(122, 42, 42, 0.25),
+                0 0 0 2px #d4af37,
+                0 0 0 8px rgba(255, 255, 255, 0.5),
+                0 0 0 10px rgba(212, 175, 55, 0.3);
+            max-width: 100%;
+            max-height: 100%;
+            opacity: 0;
+            transition: opacity 1.2s ease;
+            pointer-events: none;
+        }
+
+        .moldura.ativa {
+            opacity: 1;
+        }
+
+        .moldura img {
+            display: block;
+            max-width: calc(96vw - 40px);
+            max-height: calc(68vh - 40px);
+            width: auto;
+            height: auto;
+            border-radius: 4px;
+            transform-origin: center center;
+        }
+
+        /* ✨ ANIMAÇÃO 2: Foto "assenta" com leve zoom-out ao entrar */
+        @keyframes assentarFoto {
+            from { transform: scale(1.03); }
+            to { transform: scale(1); }
+        }
+
+        .moldura.ativa img {
+            animation: assentarFoto 1.5s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards;
+        }
+
+        /* ✨ ANIMAÇÃO 3: Cantos da moldura brilham ocasionalmente */
+        @keyframes brilhoCanto {
+            0%, 80%, 100% {
+                box-shadow: 0 20px 60px rgba(122, 42, 42, 0.25),
+                            0 0 0 2px #d4af37,
+                            0 0 0 8px rgba(255, 255, 255, 0.5),
+                            0 0 0 10px rgba(212, 175, 55, 0.3);
+            }
+            90% {
+                box-shadow: 0 20px 60px rgba(122, 42, 42, 0.25),
+                            0 0 0 2px #d4af37,
+                            0 0 0 8px rgba(255, 255, 255, 0.5),
+                            0 0 0 10px rgba(212, 175, 55, 0.3),
+                            0 0 50px rgba(212, 175, 55, 0.6);
+            }
+        }
+
+        .moldura.ativa {
+            animation: brilhoCanto 8s ease-in-out infinite;
+        }
+
+        #infoAutor {
+            margin-top: clamp(16px, 2.5vh, 34px);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: clamp(6px, 0.8vw, 14px);
+            background: rgba(255, 255, 255, 0.85);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            padding: clamp(8px, 1.2vh, 16px) clamp(16px, 2.2vw, 36px);
+            border-radius: 999px;
+            border: 1.5px solid rgba(212, 175, 55, 0.5);
+            box-shadow: 0 8px 30px rgba(122, 42, 42, 0.15);
+            opacity: 0;
+            transition: opacity 0.8s ease;
+            max-width: min(90vw, 800px);
+            flex-shrink: 0;
+        }
+
+        #infoAutor.visivel {
+            opacity: 1;
+        }
+
+        /* ✨ ANIMAÇÃO 4: Nome do autor sobe suavemente */
+        @keyframes nomeSobe {
+            from { transform: translateY(14px); }
+            to { transform: translateY(0); }
+        }
+
+        #infoAutor.visivel .nome,
+        #infoAutor.visivel .icone {
+            animation: nomeSobe 0.8s cubic-bezier(0.34, 1.56, 0.64, 1);
+        }
+
+        #infoAutor .icone {
+            font-size: clamp(0.9rem, 1.4vw, 1.6rem);
+            line-height: 1;
+            flex-shrink: 0;
+        }
+
+        #infoAutor .nome {
+            font-family: 'Quicksand', sans-serif;
+            font-size: clamp(0.9rem, 1.35vw, 1.6rem);
+            color: #7a4b4b;
+            font-weight: 600;
+            letter-spacing: clamp(0.3px, 0.05vw, 1px);
+            text-align: center;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        #barraProgresso {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            height: 4px;
+            background: rgba(212, 175, 55, 0.15);
+            z-index: 10;
+        }
+
+        #progressoFill {
+            height: 100%;
+            width: 0%;
+            background: linear-gradient(90deg, #d4af37 0%, #f7d875 50%, #d4af37 100%);
+            background-size: 200% 100%;
+            box-shadow: 0 0 15px rgba(212, 175, 55, 0.8);
+            transition: width 0.1s linear;
+        }
+
+        /* ✨ ANIMAÇÃO 5: Barra com shimmer contínuo */
+        @keyframes shimmer {
+            0% { background-position: -200% 0; }
+            100% { background-position: 200% 0; }
+        }
+
+        #progressoFill.animando {
+            animation: shimmer 3s linear infinite;
+        }
+
+        #indicadorPause {
+            position: absolute;
+            inset: 0;
+            z-index: 100;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            background: rgba(122, 42, 42, 0.3);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            pointer-events: none;
+        }
+
+        #indicadorPause.ativo {
+            display: flex;
+        }
+
+        #indicadorPause .icone {
+            font-size: clamp(3rem, 8vw, 6rem);
+            color: #d4af37;
+            text-shadow: 0 0 40px rgba(212, 175, 55, 0.8);
+            animation: pulseEmoji 1.5s ease-in-out infinite;
+        }
+
+        #statusConexao {
+            position: absolute;
+            bottom: 15px;
+            right: 20px;
+            z-index: 20;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-size: clamp(0.7rem, 0.9vw, 0.95rem);
+            color: rgba(122, 75, 75, 0.6);
+            letter-spacing: 1px;
+            font-family: 'Quicksand', sans-serif;
+        }
+
+        #statusConexao .dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: #4caf50;
+            box-shadow: 0 0 10px #4caf50;
+            flex-shrink: 0;
+            animation: pulseDot 2s ease-in-out infinite;
+        }
+
+        @keyframes pulseDot {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        #statusConexao .dot.offline {
+            background: #f44336;
+            box-shadow: 0 0 10px #f44336;
+            animation: none;
+        }
+    </style>
+</head>
+
+<body>
+
+    <div id="apresentacao">
+
+        <div id="telaEspera">
+            <div class="emoji">📸</div>
+            <div class="nome-casal">Danielly & Felipe</div>
+            <div class="divisor"></div>
+            <div class="instrucao">Aguardando fotos...</div>
+        </div>
+
+        <div id="slideAtual">
+            <div id="palco">
+                <div class="moldura" id="molduraA">
+                    <img id="fotoLayerA" src="" alt="">
+                </div>
+                <div class="moldura" id="molduraB">
+                    <img id="fotoLayerB" src="" alt="">
+                </div>
+            </div>
+
+            <div id="infoAutor">
+                <span class="icone">📸</span>
+                <span class="nome" id="autorFoto">Foto</span>
+            </div>
+        </div>
+
+        <div id="barraProgresso">
+            <div id="progressoFill"></div>
+        </div>
+
+        <div id="statusConexao">
+            <span class="dot" id="dotConexao"></span>
+            <span id="textoConexao">Ao vivo</span>
+        </div>
+
+        <div id="indicadorPause">
+            <div class="icone">⏸</div>
+        </div>
+
+    </div>
+
+    <script>
+        // ====== CONFIGURAÇÃO ======
+        const SEGUNDOS_POR_FOTO = 15;
+        const FADE_MS = 1200;
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyBMfrhe57eSgCCfZriUoETbqVISsWgk9c0",
+            authDomain: "album-casamento-dani-fe.firebaseapp.com",
+            projectId: "album-casamento-dani-fe",
+            storageBucket: "album-casamento-dani-fe.appspot.com",
+            messagingSenderId: "182190323408",
+            appId: "1:182190323408:web:6a83b55a075a824e2950d5"
+        };
+
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.firestore();
+
+        // ====== ESTADO ======
+        let fotos = [];
+        let pausado = false;
+        let listener = null;
+        let primeiraCarga = true;
+
+        let fileIdAtual = null;
+        let cicloFileId = null;
+        let filaPrioridade = [];
+
+        let layerAtiva = 'A';
+        let layerCarregando = 'B';
+
+        let emTransicao = false;
+        let proximaFotoAlvo = null;
+        let proximaFotoPronta = false;
+        let timer = null;
+
+        // ====== ELEMENTOS ======
+        const fotoLayerA = document.getElementById('fotoLayerA');
+        const fotoLayerB = document.getElementById('fotoLayerB');
+        const molduraA = document.getElementById('molduraA');
+        const molduraB = document.getElementById('molduraB');
+        const telaEspera = document.getElementById('telaEspera');
+        const infoAutor = document.getElementById('infoAutor');
+        const autorFoto = document.getElementById('autorFoto');
+        const progressoFill = document.getElementById('progressoFill');
+        const indicadorPause = document.getElementById('indicadorPause');
+        const dotConexao = document.getElementById('dotConexao');
+        const textoConexao = document.getElementById('textoConexao');
+
+        // ====== HELPERS ======
+        function getFotoEl(layer) {
+            return layer === 'A' ? fotoLayerA : fotoLayerB;
+        }
+        function getMolduraEl(layer) {
+            return layer === 'A' ? molduraA : molduraB;
+        }
+
+        function extrairNomeDoArquivo(data) {
+            if (data.arquivo) {
+                const nomeSemExtensao = data.arquivo.replace(/\.(png|jpg|jpeg|webp)$/i, '').trim();
+                if (nomeSemExtensao !== '') return nomeSemExtensao;
+            }
+            if (data.nome && data.nome.trim() !== '') return data.nome.trim();
+            return 'Convidado';
+        }
+
+        function encontrarIndicePorFileId(fileId) {
+            return fotos.findIndex(f => f.fileId === fileId);
+        }
+
+        function determinarProximaFoto() {
+            while (filaPrioridade.length > 0) {
+                const f = fotos.find(x => x.fileId === filaPrioridade[0]);
+                if (f) return f;
+                filaPrioridade.shift();
+            }
+
+            if (fotos.length === 0) return null;
+            if (!cicloFileId) return fotos[0];
+
+            const idx = encontrarIndicePorFileId(cicloFileId);
+            const proximoIdx = idx < 0 ? 0 : (idx + 1) % fotos.length;
+            return fotos[proximoIdx];
+        }
+
+        // 🎯 Reinicia a animação de "assentar" numa imagem
+        function reiniciarAnimacaoAssentar(imgEl) {
+            if (!imgEl) return;
+            imgEl.style.animation = 'none';
+            void imgEl.offsetWidth; // força reflow
+            imgEl.style.animation = 'assentarFoto 1.5s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards';
+        }
+
+        // ===================================================================
+        // 🎯 VERIFICA O ESTADO
+        // ===================================================================
+        function verificarEstadoAtual() {
+            if (fotos.length === 0) {
+                console.log('📭 Sem fotos, mostrando tela de espera');
+                mostrarTelaEspera();
+                return;
+            }
+
+            if (fileIdAtual && encontrarIndicePorFileId(fileIdAtual) < 0) {
+                console.log('⚠️ Foto atual foi removida. Forçando avanço...');
+                clearTimeout(timer);
+                forcarAvancoImediato();
+                return;
+            }
+
+            if (proximaFotoAlvo && encontrarIndicePorFileId(proximaFotoAlvo.fileId) < 0) {
+                console.log('⚠️ Próxima foto foi removida. Recalculando...');
+                proximaFotoAlvo = null;
+                proximaFotoPronta = false;
+                if (!emTransicao) {
+                    preCarregarProxima();
+                }
+                return;
+            }
+
+            if (!emTransicao && !proximaFotoPronta) {
+                preCarregarProxima();
+            }
+        }
+
+        function mostrarTelaEspera() {
+            pararSlideshow();
+            infoAutor.classList.remove('visivel');
+            molduraA.classList.remove('ativa');
+            molduraB.classList.remove('ativa');
+            telaEspera.style.display = 'flex';
+            fileIdAtual = null;
+            cicloFileId = null;
+            filaPrioridade = [];
+            proximaFotoAlvo = null;
+            proximaFotoPronta = false;
+        }
+
+        function forcarAvancoImediato() {
+            if (emTransicao) {
+                setTimeout(forcarAvancoImediato, 200);
+                return;
+            }
+
+            if (fotos.length === 0) {
+                mostrarTelaEspera();
+                return;
+            }
+
+            proximaFotoAlvo = null;
+            proximaFotoPronta = false;
+
+            const alvo = determinarProximaFoto();
+            if (!alvo) {
+                mostrarTelaEspera();
+                return;
+            }
+
+            carregarEMostrarAgora(alvo);
+        }
+
+        function carregarEMostrarAgora(foto) {
+            const url = `https://lh3.googleusercontent.com/d/${foto.fileId}=w2000?authuser=0&t=${Date.now()}`;
+            const elCarregando = getFotoEl(layerCarregando);
+
+            const img = new Image();
+            img.onload = () => {
+                if (encontrarIndicePorFileId(foto.fileId) < 0) {
+                    console.warn('Foto removida durante carregamento, tentando próxima...');
+                    setTimeout(forcarAvancoImediato, 100);
+                    return;
+                }
+
+                elCarregando.src = url;
+                elCarregando.alt = foto.nome;
+                reiniciarAnimacaoAssentar(elCarregando);
+
+                fileIdAtual = foto.fileId;
+
+                if (filaPrioridade.length > 0 && filaPrioridade[0] === foto.fileId) {
+                    filaPrioridade.shift();
+                } else {
+                    cicloFileId = foto.fileId;
+                }
+
+                emTransicao = true;
+                const molduraAtiva = getMolduraEl(layerAtiva);
+                const molduraProxima = getMolduraEl(layerCarregando);
+
+                molduraProxima.classList.add('ativa');
+                molduraAtiva.classList.remove('ativa');
+
+                [layerAtiva, layerCarregando] = [layerCarregando, layerAtiva];
+
+                atualizarAutor(foto);
+
+                clearTimeout(timer);
+                timer = setTimeout(() => {
+                    emTransicao = false;
+                    proximaFotoAlvo = null;
+                    proximaFotoPronta = false;
+                    preCarregarProxima();
+                    agendarProxima();
+                }, FADE_MS);
+            };
+            img.onerror = () => {
+                console.warn('❌ Erro ao carregar foto:', foto.nome, '- removendo da lista local');
+                fotos = fotos.filter(f => f.fileId !== foto.fileId);
+                filaPrioridade = filaPrioridade.filter(id => id !== foto.fileId);
+                setTimeout(forcarAvancoImediato, 100);
+            };
+            img.src = url;
+        }
+
+        function preCarregarProxima() {
+            if (emTransicao) return;
+
+            const alvo = determinarProximaFoto();
+            if (!alvo) return;
+
+            if (proximaFotoAlvo && proximaFotoAlvo.fileId === alvo.fileId && proximaFotoPronta) return;
+            if (proximaFotoAlvo && proximaFotoAlvo.fileId === alvo.fileId && !proximaFotoPronta) return;
+
+            proximaFotoAlvo = alvo;
+            proximaFotoPronta = false;
+
+            const url = `https://lh3.googleusercontent.com/d/${alvo.fileId}=w2000?authuser=0&t=${Date.now()}`;
+            const elCarregando = getFotoEl(layerCarregando);
+
+            const img = new Image();
+            img.onload = () => {
+                if (proximaFotoAlvo && proximaFotoAlvo.fileId === alvo.fileId && !emTransicao) {
+                    if (encontrarIndicePorFileId(alvo.fileId) < 0) {
+                        console.warn('Foto alvo removida antes de exibir');
+                        proximaFotoAlvo = null;
+                        proximaFotoPronta = false;
+                        setTimeout(preCarregarProxima, 100);
+                        return;
+                    }
+                    elCarregando.src = url;
+                    elCarregando.alt = alvo.nome;
+                    proximaFotoPronta = true;
+                    console.log('✅ Pronta para exibir:', alvo.nome);
+                }
+            };
+            img.onerror = () => {
+                console.warn('❌ Falha ao pré-carregar:', alvo.nome);
+                setTimeout(() => {
+                    if (proximaFotoAlvo && proximaFotoAlvo.fileId === alvo.fileId) {
+                        proximaFotoAlvo = null;
+                        proximaFotoPronta = false;
+                        preCarregarProxima();
+                    }
+                }, 2000);
+            };
+            img.src = url;
+        }
+
+        // ====== LISTENER FIRESTORE ======
+        function iniciarListener() {
+            listener = db.collection('fotos')
+                .orderBy('created', 'desc')
+                .onSnapshot(snapshot => {
+                    const fotosAntigas = fotos;
+
+                    fotos = snapshot.docs.map(doc => {
+                        const d = doc.data();
+                        return {
+                            fileId: d.fileId || doc.id,
+                            nome: extrairNomeDoArquivo(d),
+                            created: d.created || 0
+                        };
+                    }).filter(f => f.fileId);
+
+                    dotConexao.classList.remove('offline');
+                    textoConexao.textContent = 'Ao vivo';
+
+                    console.log(`📺 Firestore: ${fotos.length} fotos`);
+
+                    if (primeiraCarga) {
+                        primeiraCarga = false;
+                        if (fotos.length > 0) {
+                            iniciarSlideshow();
+                        } else {
+                            telaEspera.style.display = 'flex';
+                        }
+                        return;
+                    }
+
+                    const idsAntes = new Set(fotosAntigas.map(f => f.fileId));
+                    const novas = fotos.filter(f => !idsAntes.has(f.fileId));
+
+                    if (novas.length > 0) {
+                        novas.sort((a, b) => a.created - b.created);
+                        novas.forEach(f => filaPrioridade.push(f.fileId));
+                        console.log('⭐ Novas fotos na fila:', novas.length);
+                    }
+
+                    verificarEstadoAtual();
+                }, err => {
+                    console.error('❌ Erro listener:', err);
+                    dotConexao.classList.add('offline');
+                    textoConexao.textContent = 'Offline';
+                });
+        }
+
+        // ====== SLIDESHOW ======
+        function iniciarSlideshow() {
+            if (fotos.length === 0) return;
+
+            telaEspera.style.display = 'none';
+
+            fileIdAtual = fotos[0].fileId;
+            cicloFileId = fotos[0].fileId;
+
+            const elAtiva = getFotoEl(layerAtiva);
+            const molduraAtiva = getMolduraEl(layerAtiva);
+            elAtiva.src = `https://lh3.googleusercontent.com/d/${fotos[0].fileId}=w2000?authuser=0&t=${Date.now()}`;
+            elAtiva.alt = fotos[0].nome;
+            reiniciarAnimacaoAssentar(elAtiva);
+            molduraAtiva.classList.add('ativa');
+
+            atualizarAutor(fotos[0]);
+
+            const firstImg = new Image();
+            firstImg.onload = () => {
+                preCarregarProxima();
+                agendarProxima();
+            };
+            firstImg.onerror = () => {
+                preCarregarProxima();
+                agendarProxima();
+            };
+            firstImg.src = elAtiva.src;
+        }
+
+        function agendarProxima() {
+            if (pausado) return;
+            if (fotos.length === 0) return;
+
+            clearTimeout(timer);
+            timer = setTimeout(() => {
+                if (pausado) return;
+                avancarSlide();
+            }, SEGUNDOS_POR_FOTO * 1000);
+
+            animarProgresso();
+        }
+
+        function avancarSlide() {
+            if (fotos.length === 0) {
+                mostrarTelaEspera();
+                return;
+            }
+            if (emTransicao) return;
+
+            if (!proximaFotoPronta || !proximaFotoAlvo) {
+                console.log('⏳ Próxima não está pronta, aguardando...');
+                clearTimeout(timer);
+                timer = setTimeout(avancarSlide, 500);
+                return;
+            }
+
+            if (encontrarIndicePorFileId(proximaFotoAlvo.fileId) < 0) {
+                console.warn('⚠️ Próxima foi removida. Recalculando...');
+                proximaFotoAlvo = null;
+                proximaFotoPronta = false;
+                clearTimeout(timer);
+                timer = setTimeout(avancarSlide, 200);
+                return;
+            }
+
+            const proxima = proximaFotoAlvo;
+
+            const eraPrioridade = filaPrioridade.length > 0 && filaPrioridade[0] === proxima.fileId;
+
+            if (eraPrioridade) {
+                filaPrioridade.shift();
+                console.log(`⭐ Prioridade (restam ${filaPrioridade.length})`);
+            } else {
+                cicloFileId = proxima.fileId;
+            }
+
+            fileIdAtual = proxima.fileId;
+            emTransicao = true;
+
+            // 🎬 Reinicia a animação "assentar" na foto que vai entrar
+            const elProxima = getFotoEl(layerCarregando);
+            reiniciarAnimacaoAssentar(elProxima);
+
+            const molduraAtiva = getMolduraEl(layerAtiva);
+            const molduraProxima = getMolduraEl(layerCarregando);
+
+            molduraProxima.classList.add('ativa');
+            molduraAtiva.classList.remove('ativa');
+
+            [layerAtiva, layerCarregando] = [layerCarregando, layerAtiva];
+
+            atualizarAutor(proxima);
+
+            clearTimeout(timer);
+            timer = setTimeout(() => {
+                emTransicao = false;
+                proximaFotoAlvo = null;
+                proximaFotoPronta = false;
+                preCarregarProxima();
+                agendarProxima();
+            }, FADE_MS);
+        }
+
+        function atualizarAutor(foto) {
+            if (!foto) return;
+            infoAutor.classList.remove('visivel');
+            setTimeout(() => {
+                autorFoto.textContent = foto.nome;
+                infoAutor.classList.add('visivel');
+            }, 300);
+        }
+
+        function animarProgresso() {
+            progressoFill.classList.remove('animando');
+            progressoFill.style.width = '0%';
+            progressoFill.style.transition = 'none';
+            void progressoFill.offsetWidth;
+            progressoFill.style.transition = `width ${SEGUNDOS_POR_FOTO}s linear`;
+            progressoFill.classList.add('animando');
+            progressoFill.style.width = '100%';
+        }
+
+        function pararSlideshow() {
+            clearTimeout(timer);
+            timer = null;
+            progressoFill.classList.remove('animando');
+            progressoFill.style.transition = 'none';
+            progressoFill.style.width = '0%';
+        }
+
+        // ====== PAUSE / RESUME ======
+        document.body.addEventListener('click', () => {
+            pausado = !pausado;
+            indicadorPause.classList.toggle('ativo', pausado);
+
+            if (pausado) {
+                pararSlideshow();
+            } else {
+                if (!emTransicao) {
+                    preCarregarProxima();
+                    agendarProxima();
+                }
+            }
+        });
+
+        // ====== WAKE LOCK ======
+        async function manterAcordado() {
+            try {
+                if ('wakeLock' in navigator) {
+                    await navigator.wakeLock.request('screen');
+                    console.log('💡 Tela mantida acordada');
+                }
+            } catch (e) {
+                console.warn('Wake Lock não suportado');
+            }
+        }
+
+        // ====== INICIALIZAÇÃO ======
+        manterAcordado();
+        iniciarListener();
+
+        console.log('📺 Modo apresentação iniciado');
+    </script>
+</body>
+
+</html>

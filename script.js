@@ -236,13 +236,6 @@ function setsIguais(setA, setB) {
     return true;
 }
 
-
-function recarregarGaleriaAgora() {
-    // Com o listener em tempo real, não precisa fazer nada!
-    // O Firestore avisa sozinho quando chega foto nova.
-    console.log('✅ Firestore vai atualizar automaticamente');
-}
-
 // ====== LISTENER EM TEMPO REAL ======
 function iniciarListenerFirestore() {
     if (listenerFirestore) return;   // já está rodando
@@ -266,9 +259,9 @@ function iniciarListenerFirestore() {
             renderizarGaleria(fotosGaleria);
             contadorAlbum.textContent = `(${fotosGaleria.length})`;
 
-            console.log('🔴 Firestore atualizou:', fotosGaleria.length, 'fotos');
+            // console.log('🔴 Firestore atualizou:', fotosGaleria.length, 'fotos');
         }, erro => {
-            console.error('❌ Erro no listener Firestore:', erro);
+            // console.error('❌ Erro no listener Firestore:', erro);
         });
 }
 
@@ -382,10 +375,87 @@ modalPreview.addEventListener('click', function(e) {
 });
 btnFecharPreview.addEventListener('click', cancelarEnvio);
 
+// ===================================================================
+// ===== FILA DE UPLOAD COM RETRY E CONCORRÊNCIA LIMITADA ============
+// ===================================================================
+const FILA_UPLOAD = {
+    itens: [],
+    processando: 0,
+    MAX_CONCORRENTES: 3,    // 3 uploads simultâneos por cliente
+    MAX_TENTATIVAS: 1,
+};
+
+function enfileirarUpload(item) {
+    return new Promise((resolve, reject) => {
+        FILA_UPLOAD.itens.push({ item, resolve, reject, tentativa: 1 });
+        atualizarStatusFila();
+        processarFila();
+    });
+}
+
+async function processarFila() {
+    if (FILA_UPLOAD.processando >= FILA_UPLOAD.MAX_CONCORRENTES) return;
+    if (FILA_UPLOAD.itens.length === 0) return;
+
+    const tarefa = FILA_UPLOAD.itens.shift();
+    FILA_UPLOAD.processando++;
+    atualizarStatusFila();
+
+    try {
+        const resultado = await executarUpload(tarefa.item);
+        tarefa.resolve(resultado);
+    } catch (erro) {
+        if (tarefa.tentativa < FILA_UPLOAD.MAX_TENTATIVAS) {
+            const espera = 1000 * Math.pow(2, tarefa.tentativa - 1); // 1s, 2s, 4s
+            console.warn(`⚠️ Tentativa ${tarefa.tentativa} falhou. Retry em ${espera}ms...`);
+            await new Promise(r => setTimeout(r, espera));
+            tarefa.tentativa++;
+            FILA_UPLOAD.itens.unshift(tarefa);
+        } else {
+            console.error(`❌ Upload falhou após ${FILA_UPLOAD.MAX_TENTATIVAS} tentativas`);
+            tarefa.reject(erro);
+        }
+    } finally {
+        FILA_UPLOAD.processando--;
+        atualizarStatusFila();
+        processarFila();
+    }
+}
+
+async function executarUpload(item) {
+    const formData = new FormData();
+    formData.append('imageData', item.imagemFinal);
+    formData.append('fileName', item.nomeArquivo);
+    formData.append('nomeConvidado', item.nomeConvidado);
+
+    const response = await fetch(SCRIPT_URL, {
+        method: 'POST',
+        body: formData
+    });
+
+    if (!response.ok) {
+        throw new Error('HTTP ' + response.status);
+    }
+
+    const result = await response.json();
+    if (result.status !== 'sucesso') {
+        throw new Error(result.message || 'Erro no servidor');
+    }
+    return result;
+}
+
+// Mostra o status da fila no console (opcional, ajuda a debugar)
+function atualizarStatusFila() {
+    const total = FILA_UPLOAD.itens.length + FILA_UPLOAD.processando;
+    if (total > 0) {
+        // console.log(`📋 Fila: ${FILA_UPLOAD.processando} enviando, ${FILA_UPLOAD.itens.length} aguardando`);
+    }
+}
+
 // ====== CONFETES ======
 function soltarConfetes() {
     if (typeof confetti !== 'function') {
-        console.warn('Biblioteca confetti não carregada.');
+        // console.warn('Biblioteca confetti não carregada.');
         return;
     }
     confetti({
@@ -521,20 +591,14 @@ async function enviarFotoCamera() {
     const agora = new Date();
     const nomeArquivo = `Capturado por ${nomeConvidado}.png`;
 
-    const formData = new FormData();
-    formData.append('imageData', imagemFinal);
-    formData.append('fileName', nomeArquivo);
-    formData.append('nomeConvidado', nomeConvidado);
-
-    try {
-        const response = await fetch(SCRIPT_URL, {
-            method: 'POST',
-            body: formData
+   try {
+        const result = await enfileirarUpload({
+            imagemFinal,
+            nomeArquivo,
+            nomeConvidado
         });
 
         await animarProgresso(90, 100, 500, '✅ Concluído!');
-
-        const result = await response.json();
 
         if (result.status === "sucesso") {
             statusDiv.innerHTML = `✅ Foto de ${nomeConvidado} enviada com sucesso! Muito obrigado(a)! 💖`;
@@ -543,7 +607,6 @@ async function enviarFotoCamera() {
             modalPreview.classList.remove('active');
             fotoCapturada = null;
             fileInput.value = '';
-            recarregarGaleriaAgora();
 
             btnEnviarPreview.innerHTML = '💌 Enviar com Amor';
 
@@ -614,27 +677,17 @@ async function enviarMultiplasFotos() {
         await animarProgresso(0, 90, 6000, label);
 
         try {
+            
             const imagemFinal = await aplicarFiltroCanvas(imgDataOriginal, filtroAtual);
             const agora = new Date();
             const nomeArquivo = `Capturado por ${nomeConvidado}.png`;
 
-            const formData = new FormData();
-            formData.append('imageData', imagemFinal);
-            formData.append('fileName', nomeArquivo);
-            formData.append('nomeConvidado', nomeConvidado);
-
-            const response = await fetch(SCRIPT_URL, {
-                method: 'POST',
-                body: formData
+            await enfileirarUpload({
+                imagemFinal,
+                nomeArquivo,
+                nomeConvidado
             });
-
-            const result = await response.json();
-
-            if (result.status === "sucesso") {
-                sucesso++;
-            } else {
-                falhas++;
-            }
+            sucesso++;
         } catch (err) {
             falhas++;
             console.error(`Erro ao enviar foto ${i+1}:`, err);
@@ -659,8 +712,6 @@ async function enviarMultiplasFotos() {
     selecionarFiltro('none');
     spinnerLoading.classList.add('hidden');
     progressContainer.classList.remove('carregando');
-
-    recarregarGaleriaAgora();
 
     await new Promise(resolve => setTimeout(resolve, 300));
 
