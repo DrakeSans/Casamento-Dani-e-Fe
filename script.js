@@ -104,8 +104,14 @@ let nomeConfirmado = false;
 let ultimoCount = -1;
 
 // ---- NOVAS VARIÁVEIS PARA NAVEGAÇÃO NA GALERIA ----
-let fotosGaleria = [];          // Array com { url, fileId, nome }
+let fotosGaleria = [];
 let indiceGaleriaAtual = 0;
+
+// ====== GIROSCÓPIO ======
+let anguloDispositivo = 0;
+let giroscopioAtivo = false;
+let ultimoBeta = 0;
+let ultimoGamma = 0;
 
 // ====== FUNÇÕES AUXILIARES ======
 function formatarDataHora(data) {
@@ -135,6 +141,62 @@ function setupExposureControl() {
     };
 }
 
+// ===================================================================
+// ===== GIROSCÓPIO — detecta a orientação do celular ================
+// ===================================================================
+function iniciarGiroscopio() {
+    if (giroscopioAtivo) return;
+
+    if (!window.DeviceOrientationEvent) {
+        console.log('⚠️ Giroscópio não suportado neste dispositivo');
+        return;
+    }
+
+    const handler = function(event) {
+        ultimoBeta = event.beta || 0;
+        ultimoGamma = event.gamma || 0;
+
+        // gamma = rotação lateral (esquerda/direita)
+        // beta  = rotação frente/trás
+        const gammaAbs = Math.abs(ultimoGamma);
+        const betaAbs = Math.abs(ultimoBeta);
+
+        if (ultimoGamma > 45) {
+            // Celular deitado para a esquerda
+            anguloDispositivo = 90;
+        } else if (ultimoGamma < -45) {
+            // Celular deitado para a direita
+            anguloDispositivo = -90;
+        } else if (betaAbs > 150) {
+            // Celular de cabeça pra baixo
+            anguloDispositivo = 180;
+        } else {
+            // Celular em pé
+            anguloDispositivo = 0;
+        }
+    };
+
+    if (typeof DeviceOrientationEvent.requestPermission === 'function') {
+        DeviceOrientationEvent.requestPermission()
+            .then(permissionState => {
+                if (permissionState === 'granted') {
+                    window.addEventListener('deviceorientation', handler);
+                    giroscopioAtivo = true;
+                    console.log('✅ Giroscópio ativado (iOS)');
+                } else {
+                    console.warn('⚠️ Permissão do giroscópio negada');
+                }
+            })
+            .catch(err => {
+                console.warn('⚠️ Erro ao pedir permissão do giroscópio:', err);
+            });
+    } else {
+        window.addEventListener('deviceorientation', handler);
+        giroscopioAtivo = true;
+        console.log('✅ Giroscópio ativado');
+    }
+}
+
 // ====== NAVEGAÇÃO NO MODAL DA GALERIA ======
 function abrirModalGaleria(index) {
     if (fotosGaleria.length === 0) return;
@@ -156,7 +218,6 @@ function atualizarModalGaleria() {
     document.getElementById('contadorGaleria').textContent = `${indiceGaleriaAtual+1}/${fotosGaleria.length}`;
 }
 
-// Eventos dos botões de navegação da galeria
 document.getElementById('prevGaleria').addEventListener('click', function(e) {
     e.stopPropagation();
     if (fotosGaleria.length === 0) return;
@@ -171,7 +232,6 @@ document.getElementById('nextGaleria').addEventListener('click', function(e) {
     atualizarModalGaleria();
 });
 
-// Fechar modal da galeria
 modalImagem.addEventListener('click', function(e) {
     if (e.target === this) {
         this.classList.remove('active');
@@ -181,9 +241,8 @@ fecharModal.addEventListener('click', function() {
     modalImagem.classList.remove('active');
 });
 
-// ====== LISTENER DE TECLADO (ATUALIZADO) ======
+// ====== LISTENER DE TECLADO ======
 document.addEventListener('keydown', function(e) {
-    // Se o modal da galeria estiver ativo, navega pelas fotos da galeria
     if (modalImagem.classList.contains('active')) {
         if (e.key === 'ArrowLeft') {
             document.getElementById('prevGaleria').click();
@@ -197,7 +256,6 @@ document.addEventListener('keydown', function(e) {
         return;
     }
 
-    // Se o modal de prévia estiver ativo, navega pelas fotos da prévia
     if (modalPreview.classList.contains('active')) {
         if (e.key === 'ArrowLeft') {
             document.getElementById('prevFoto').click();
@@ -238,12 +296,11 @@ function setsIguais(setA, setB) {
 
 // ====== LISTENER EM TEMPO REAL ======
 function iniciarListenerFirestore() {
-    if (listenerFirestore) return;   // já está rodando
+    if (listenerFirestore) return;
 
     listenerFirestore = db.collection('fotos')
         .orderBy('created', 'desc')
         .onSnapshot(snapshot => {
-            // Monta o mesmo formato que o resto do código espera
             fotosGaleria = snapshot.docs.map(doc => {
                 const d = doc.data();
                 return {
@@ -258,14 +315,12 @@ function iniciarListenerFirestore() {
 
             renderizarGaleria(fotosGaleria);
             contadorAlbum.textContent = `(${fotosGaleria.length})`;
-
-            // console.log('🔴 Firestore atualizou:', fotosGaleria.length, 'fotos');
         }, erro => {
             // console.error('❌ Erro no listener Firestore:', erro);
         });
 }
 
-// ====== RENDERIZA A GALERIA (extraída de carregarGaleria) ======
+// ====== RENDERIZA A GALERIA ======
 function renderizarGaleria(fotos) {
     if (!fotos || fotos.length === 0) {
         galeriaGrid.innerHTML = '<div class="galeria-vazio">📭 Nenhuma foto enviada ainda. Seja o primeiro(a)!</div>';
@@ -381,7 +436,7 @@ btnFecharPreview.addEventListener('click', cancelarEnvio);
 const FILA_UPLOAD = {
     itens: [],
     processando: 0,
-    MAX_CONCORRENTES: 3,    // 3 uploads simultâneos por cliente
+    MAX_CONCORRENTES: 3,
     MAX_TENTATIVAS: 1,
 };
 
@@ -406,7 +461,7 @@ async function processarFila() {
         tarefa.resolve(resultado);
     } catch (erro) {
         if (tarefa.tentativa < FILA_UPLOAD.MAX_TENTATIVAS) {
-            const espera = 1000 * Math.pow(2, tarefa.tentativa - 1); // 1s, 2s, 4s
+            const espera = 1000 * Math.pow(2, tarefa.tentativa - 1);
             console.warn(`⚠️ Tentativa ${tarefa.tentativa} falhou. Retry em ${espera}ms...`);
             await new Promise(r => setTimeout(r, espera));
             tarefa.tentativa++;
@@ -444,7 +499,6 @@ async function executarUpload(item) {
     return result;
 }
 
-// Mostra o status da fila no console (opcional, ajuda a debugar)
 function atualizarStatusFila() {
     const total = FILA_UPLOAD.itens.length + FILA_UPLOAD.processando;
     if (total > 0) {
@@ -454,10 +508,7 @@ function atualizarStatusFila() {
 
 // ====== CONFETES ======
 function soltarConfetes() {
-    if (typeof confetti !== 'function') {
-        // console.warn('Biblioteca confetti não carregada.');
-        return;
-    }
+    if (typeof confetti !== 'function') return;
     confetti({
         particleCount: 150,
         spread: 80,
@@ -677,7 +728,6 @@ async function enviarMultiplasFotos() {
         await animarProgresso(0, 90, 6000, label);
 
         try {
-            
             const imagemFinal = await aplicarFiltroCanvas(imgDataOriginal, filtroAtual);
             const agora = new Date();
             const nomeArquivo = `Capturado por ${nomeConvidado}.png`;
@@ -821,10 +871,9 @@ function confirmarNome() {
     nomeConvidado = capitalizarNome(nome);
     nomeConfirmado = true;
 
-    // 💾 Salva o nome para persistir após recarregar a página
     try {
         localStorage.setItem('nomeConvidadoAlbum', nomeConvidado);
-    } catch (e) { /* ignora se localStorage indisponível */ }
+    } catch (e) { /* ignora */ }
 
     overlay.classList.add('hidden');
     mainContent.classList.add('visible');
@@ -859,7 +908,7 @@ function abrirModalSair() {
     modalSair.classList.add('active');
 }
 
-// ====== CONFIRMAR SAÍDA (executa a limpeza) ======
+// ====== CONFIRMAR SAÍDA ======
 function sair() {
     modalSair.classList.remove('active');
 
@@ -870,7 +919,6 @@ function sair() {
     nomeConvidado = '';
     nomeConfirmado = false;
 
-    // Para a câmera, se estiver ativa
     if (streamAtual) {
         streamAtual.getTracks().forEach(track => track.stop());
         streamAtual = null;
@@ -887,17 +935,14 @@ function sair() {
     btnTrocarCamera.style.display = 'none';
     exposureControl.style.display = 'none';
 
-    // Para o auto-reload da galeria
     if (listenerFirestore) {
         listenerFirestore();
         listenerFirestore = null;
     }
 
-    // Fecha modais se estiverem abertos
     modalPreview.classList.remove('active');
     modalImagem.classList.remove('active');
 
-    // Limpa estados temporários
     fotoCapturada = null;
     fotosParaEnviar = [];
     indiceAtual = 0;
@@ -909,11 +954,9 @@ function sair() {
         });
     }
 
-    // Volta para a tela do livro / formulário
     overlay.classList.remove('hidden');
     mainContent.classList.remove('visible');
 
-    // Reset do formulário
     inputNome.value = '';
     btnConfirmar.disabled = true;
 
@@ -927,14 +970,12 @@ if (btnSair) {
     btnCancelarSair.addEventListener('click', () => modalSair.classList.remove('active'));
     btnConfirmarSair.addEventListener('click', sair);
 
-    // Fecha o modal ao clicar fora do card
     modalSair.addEventListener('click', function(e) {
         if (e.target === this) {
             this.classList.remove('active');
         }
     });
 
-    // Fecha o modal com a tecla ESC
     document.addEventListener('keydown', function(e) {
         if (e.key === 'Escape' && modalSair.classList.contains('active')) {
             modalSair.classList.remove('active');
@@ -978,6 +1019,9 @@ async function iniciarCamera() {
         btnCapturar.style.display = 'flex';
         btnTrocarCamera.style.display = 'flex';
         setupExposureControl();
+
+        // 👇 Ativa o giroscópio
+        iniciarGiroscopio();
 
         aplicarEspelhamento();
 
@@ -1049,6 +1093,9 @@ async function capturarFoto() {
     tirarFotoNow();
 }
 
+// ===================================================================
+// ===== TIRAR FOTO — com rotação corrigida por câmera ===============
+// ===================================================================
 function tirarFotoNow() {
     if (video.videoWidth === 0 || video.videoHeight === 0) {
         statusDiv.innerHTML = "⏳ Aguarde a câmera estabilizar...";
@@ -1057,19 +1104,65 @@ function tirarFotoNow() {
         return;
     }
 
-    const context = canvas.getContext('2d');
+    // ====== 1) Captura o frame do vídeo no tamanho natural ======
     const w = video.videoWidth;
     const h = video.videoHeight;
-    canvas.width = w;
-    canvas.height = h;
+
+    const canvasOriginal = document.createElement('canvas');
+    canvasOriginal.width = w;
+    canvasOriginal.height = h;
+    const ctxOriginal = canvasOriginal.getContext('2d');
+
+    // Se for câmera frontal, espelha o frame pra ficar igual ao preview
+    if (facingMode === 'user') {
+        ctxOriginal.translate(w, 0);
+        ctxOriginal.scale(-1, 1);
+    }
 
     const exp = parseFloat(exposureSlider.value);
-    context.filter = `brightness(${exp})`;
-    context.drawImage(video, 0, 0, w, h);
-    context.filter = 'none';
+    ctxOriginal.filter = `brightness(${exp})`;
+    ctxOriginal.drawImage(video, 0, 0, w, h);
+    ctxOriginal.filter = 'none';
 
+    // ====== 2) Rotaciona conforme a orientação do celular ======
+    let canvasFinal;
+
+    if (anguloDispositivo === 0) {
+        // Celular em pé — usa direto
+        canvasFinal = canvasOriginal;
+        console.log('📸 Foto capturada em modo retrato');
+
+    } else {
+        canvasFinal = document.createElement('canvas');
+        const angulo = anguloDispositivo;
+
+        if (angulo === 90 || angulo === -90) {
+            // Deitado (landscape) → troca largura e altura
+            canvasFinal.width = h;
+            canvasFinal.height = w;
+            const ctx = canvasFinal.getContext('2d');
+            ctx.translate(h / 2, w / 2);
+            ctx.rotate(angulo === 90 ? Math.PI / 2 : -Math.PI / 2);
+            ctx.drawImage(canvasOriginal, -w / 2, -h / 2);
+
+        } else if (angulo === 180) {
+            // De cabeça pra baixo → gira 180
+            canvasFinal.width = w;
+            canvasFinal.height = h;
+            const ctx = canvasFinal.getContext('2d');
+            ctx.translate(w / 2, h / 2);
+            ctx.rotate(Math.PI);
+            ctx.drawImage(canvasOriginal, -w / 2, -h / 2);
+        }
+
+        console.log('📸 Foto rotacionada. Ângulo:', angulo);
+    }
+
+    // ====== 3) Salva a foto ======
     fotosParaEnviar = [];
-    fotoCapturada = canvas.toDataURL('image/jpeg', 0.85);
+    fotoCapturada = canvasFinal.toDataURL('image/jpeg', 0.85);
+
+    // ====== 4) Mostra o preview normalmente ======
     previewImg.src = fotoCapturada;
     contadorFotos.textContent = '1/1';
     prevFoto.style.display = 'none';
@@ -1099,7 +1192,6 @@ window.addEventListener('beforeunload', function() {
     if (streamAtual) {
         streamAtual.getTracks().forEach(track => track.stop());
     }
-    // Cancela o listener do Firestore (libera a conexão WebSocket)
     if (listenerFirestore) {
         listenerFirestore();
         listenerFirestore = null;
@@ -1109,5 +1201,5 @@ window.addEventListener('beforeunload', function() {
 statusDiv.innerHTML = "💖 Digite seu nome para começar";
 statusDiv.className = "info";
 
-// Verifica se já existe um nome salvo (mantém o login após recarregar)
+// Verifica se já existe um nome salvo
 verificarNomeSalvo();
