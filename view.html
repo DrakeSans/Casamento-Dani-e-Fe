@@ -276,7 +276,7 @@
             text-overflow: ellipsis;
         }
 
-        /* ===== 🌟 BARRA DE PROGRESSO — AGORA NO TOPO ===== */
+        /* ===== BARRA DE PROGRESSO ===== */
         #barraProgresso {
             position: absolute;
             top: 0;
@@ -306,7 +306,7 @@
             animation: shimmer 3s linear infinite;
         }
 
-        /* ===== 🌟 STATUS — AGORA NO TOPO ===== */
+        /* ===== STATUS ===== */
         #statusConexao {
             position: absolute;
             top: calc(14px + env(safe-area-inset-top));
@@ -342,6 +342,81 @@
             animation: none;
         }
 
+        /* ===== 🌟 BOTÃO DE TELA CHEIA ===== */
+        #btnFullscreenWrap {
+            position: absolute;
+            top: calc(6px + env(safe-area-inset-top));
+            left: 6px;
+            z-index: 25;
+            padding: 8px;
+            background: transparent;
+            pointer-events: auto;
+            cursor: pointer;
+        }
+
+        #btnFullscreen {
+            width: 42px;
+            height: 42px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: rgba(255, 255, 255, 0.85);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            border: 1.5px solid rgba(212, 175, 55, 0.6);
+            border-radius: 50%;
+            color: #7a4b4b;
+            cursor: pointer;
+            transition: opacity 0.35s ease, visibility 0.35s ease, transform 0.25s ease, background 0.25s ease, box-shadow 0.25s ease;
+            box-shadow: 0 4px 15px rgba(122, 42, 42, 0.2);
+            padding: 0;
+            font-family: inherit;
+
+            /* 👻 Invisível por padrão (opacity + visibility juntos) */
+            opacity: 0;
+            visibility: hidden;
+            transform: scale(0.9);
+            pointer-events: none;
+        }
+
+        /* 👁️ Aparece quando o mouse passa por cima da área */
+        #btnFullscreenWrap:hover #btnFullscreen,
+        #btnFullscreenWrap:focus-within #btnFullscreen {
+            opacity: 1;
+            visibility: visible;
+            transform: scale(1);
+            pointer-events: auto;
+        }
+
+        #btnFullscreen:hover {
+            background: #ffffff;
+            transform: scale(1.08);
+            box-shadow: 0 6px 20px rgba(212, 175, 55, 0.5);
+        }
+
+        #btnFullscreen:active {
+            transform: scale(0.95);
+        }
+
+        #btnFullscreen svg {
+            transition: transform 0.3s ease;
+            pointer-events: none;
+        }
+
+        #btnFullscreen.ativo svg {
+            transform: rotate(180deg);
+        }
+
+        /* 👻 BLOQUEADO — esconde com visibility (mais forte que opacity) */
+        #btnFullscreenWrap.bloqueado #btnFullscreen,
+        #btnFullscreenWrap.bloqueado:hover #btnFullscreen,
+        #btnFullscreenWrap.bloqueado:focus-within #btnFullscreen {
+            opacity: 0 !important;
+            visibility: hidden !important;
+            transform: scale(0.9) !important;
+            pointer-events: none !important;
+        }
+
         /* ===== PAUSE ===== */
         #indicadorPause {
             position: absolute;
@@ -367,7 +442,33 @@
             animation: pulseEmoji 1.5s ease-in-out infinite;
         }
 
-        /* ===== 📱 MOBILE ===== */
+        /* ===== MOBILE ===== */
+        @media (max-width: 900px) {
+            #btnFullscreenWrap {
+                top: calc(4px + env(safe-area-inset-top));
+                left: 4px;
+                padding: 6px;
+            }
+
+            #btnFullscreen {
+                width: 38px;
+                height: 38px;
+            }
+
+            #btnFullscreen svg {
+                width: 16px;
+                height: 16px;
+            }
+
+            /* No mobile, aparece quando a tela for tocada */
+            body.tocou #btnFullscreen {
+                opacity: 1;
+                visibility: visible;
+                transform: scale(1);
+                pointer-events: auto;
+            }
+        }
+
         @media (max-width: 600px) {
             #slideAtual {
                 gap: 10px;
@@ -482,6 +583,18 @@
         <div id="statusConexao">
             <span class="dot" id="dotConexao"></span>
             <span id="textoConexao">Ao vivo</span>
+        </div>
+
+        <!-- 🌟 BOTÃO DE TELA CHEIA -->
+        <div id="btnFullscreenWrap">
+            <button id="btnFullscreen" title="Tela cheia (F)" aria-label="Tela cheia">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" width="20" height="20">
+                    <path d="M8 3H5a2 2 0 0 0-2 2v3"/>
+                    <path d="M21 8V5a2 2 0 0 0-2-2h-3"/>
+                    <path d="M3 16v3a2 2 0 0 0 2 2h3"/>
+                    <path d="M16 21h3a2 2 0 0 0 2-2v-3"/>
+                </svg>
+            </button>
         </div>
 
         <div id="indicadorPause">
@@ -928,7 +1041,10 @@
             progressoFill.style.width = '0%';
         }
 
-        document.body.addEventListener('click', () => {
+        // ⚠️ Clique no body pausa/retoma — MAS ignoramos se foi no botão de fullscreen
+        document.body.addEventListener('click', (e) => {
+            if (e.target.closest('#btnFullscreenWrap')) return;
+
             pausado = !pausado;
             indicadorPause.classList.toggle('ativo', pausado);
 
@@ -941,6 +1057,127 @@
                 }
             }
         });
+
+        // ===================================================================
+        // 🌟 BOTÃO DE TELA CHEIA
+        // ===================================================================
+        const btnFullscreen = document.getElementById('btnFullscreen');
+        const btnFullscreenWrap = document.getElementById('btnFullscreenWrap');
+
+        if (btnFullscreen) {
+            const suportaFullscreen = document.fullscreenEnabled ||
+                                      document.webkitFullscreenEnabled ||
+                                      document.mozFullScreenEnabled ||
+                                      document.msFullscreenEnabled;
+
+            if (!suportaFullscreen) {
+                btnFullscreenWrap.style.display = 'none';
+                console.log('⚠️ Tela cheia não suportada neste navegador');
+            } else {
+                async function toggleFullscreen() {
+                    try {
+                        const estaEmFullscreen = document.fullscreenElement ||
+                                                document.webkitFullscreenElement ||
+                                                document.mozFullScreenElement ||
+                                                document.msFullscreenElement;
+
+                        if (!estaEmFullscreen) {
+                            const el = document.documentElement;
+                            if (el.requestFullscreen) {
+                                await el.requestFullscreen();
+                            } else if (el.webkitRequestFullscreen) {
+                                await el.webkitRequestFullscreen();
+                            } else if (el.mozRequestFullScreen) {
+                                await el.mozRequestFullScreen();
+                            } else if (el.msRequestFullscreen) {
+                                await el.msRequestFullscreen();
+                            }
+                        } else {
+                            if (document.exitFullscreen) {
+                                await document.exitFullscreen();
+                            } else if (document.webkitExitFullscreen) {
+                                await document.webkitExitFullscreen();
+                            } else if (document.mozCancelFullScreen) {
+                                await document.mozCancelFullScreen();
+                            } else if (document.msExitFullscreen) {
+                                await document.msExitFullscreen();
+                            }
+                        }
+                    } catch (err) {
+                        console.warn('Erro ao alternar tela cheia:', err);
+                    }
+                }
+
+                // 🎯 CLIQUE NO BOTÃO: muda fullscreen + bloqueia (esconde)
+                btnFullscreen.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    toggleFullscreen();
+                    btnFullscreenWrap.classList.add('bloqueado');
+                });
+
+                // 🎯 CLIQUE NA ÁREA (quando bloqueado): desbloqueia (botão volta a aparecer)
+                btnFullscreenWrap.addEventListener('click', (e) => {
+                    if (btnFullscreenWrap.classList.contains('bloqueado')) {
+                        e.stopPropagation();
+                        btnFullscreenWrap.classList.remove('bloqueado');
+                    }
+                });
+
+                // 🔓 MOUSE SAI DA ÁREA: desbloqueia automaticamente
+                btnFullscreenWrap.addEventListener('mouseleave', () => {
+                    btnFullscreenWrap.classList.remove('bloqueado');
+                });
+
+                // 📱 MOBILE: desbloqueia após 3s
+                if ('ontouchstart' in window || navigator.maxTouchPoints > 0) {
+                    btnFullscreen.addEventListener('touchstart', () => {
+                        setTimeout(() => {
+                            btnFullscreenWrap.classList.remove('bloqueado');
+                        }, 3000);
+                    }, { passive: true });
+                }
+
+                function detectarMudancaFullscreen() {
+                    const estaEmFullscreen = document.fullscreenElement ||
+                                            document.webkitFullscreenElement ||
+                                            document.mozFullScreenElement ||
+                                            document.msFullscreenElement;
+
+                    if (estaEmFullscreen) {
+                        btnFullscreen.classList.add('ativo');
+                        btnFullscreen.setAttribute('title', 'Sair da tela cheia (F)');
+                    } else {
+                        btnFullscreen.classList.remove('ativo');
+                        btnFullscreen.setAttribute('title', 'Tela cheia (F)');
+                    }
+                }
+
+                ['fullscreenchange', 'webkitfullscreenchange', 'mozfullscreenchange', 'MSFullscreenChange']
+                    .forEach(evento => document.addEventListener(evento, detectarMudancaFullscreen));
+
+                // Atalho de teclado: F
+                document.addEventListener('keydown', (e) => {
+                    if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
+                    if (e.key === 'f' || e.key === 'F') {
+                        e.preventDefault();
+                        toggleFullscreen();
+                    }
+                });
+
+                console.log('✅ Botão de tela cheia ativado (atalho: F)');
+            }
+        }
+
+        // 📱 Mostra o botão no mobile quando a tela é tocada
+        if ('ontouchstart' in window || navigator.maxTouchPoints > 0) {
+            document.body.addEventListener('touchstart', () => {
+                document.body.classList.add('tocou');
+                clearTimeout(window._btnTimeout);
+                window._btnTimeout = setTimeout(() => {
+                    document.body.classList.remove('tocou');
+                }, 3000);
+            }, { passive: true });
+        }
 
         async function manterAcordado() {
             try {
